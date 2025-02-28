@@ -84,7 +84,8 @@ World::update(std::chrono::microseconds delta)
     bool isRightWorld = (ball.position.x - ball.radius < 0);
     bool isLeftWorld = (ball.position.x + ball.radius > width);
 
-    if ((isAboveWorld && ball.speed.y < 0) || (isBelowWorld && ball.speed.y > 0)) {
+    if ((isAboveWorld && ball.speed.y < 0) ||
+        (isBelowWorld && ball.speed.y > 0)) {
       ball.speed.y *= -1;
     }
 
@@ -155,6 +156,22 @@ World::onBallHitTile(TileID id)
 
   // initially: 1unit/second upward
   ball.speed = { 0, -(height / 3.0) };
+
+  auto it = std::find_if(tileMap.begin(),
+                               tileMap.end(),
+                               [=](const Tile& tile) { return tile.id == id; });
+
+  // delete tile if is dead
+  if (it != tileMap.end())
+  {
+    it->lifes--;
+
+    if (it->lifes == 0)
+    {
+      tileMap.erase(it);
+    }
+  }
+
 }
 
 SDL_Rect
