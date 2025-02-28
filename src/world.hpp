@@ -1,8 +1,8 @@
 #pragma once
 
 #include <SDL.h>
-#include <vector>
 #include <chrono>
+#include <vector>
 
 #include "application.hpp"
 
@@ -27,6 +27,13 @@ struct Tile
   std::uint8_t lifes = 1;
 };
 
+struct Ball
+{
+  SDL_FPoint position = { 0, 0 };
+  SDL_FPoint speed = { 0, 0 }; // units/second
+  float radius = 5.0;
+};
+
 /**
  * @brief Logical definition of the world and its entities
  */
@@ -48,7 +55,7 @@ private:
   static constexpr unsigned maxTilesX = 10;
   static constexpr unsigned maxTilesY = 10;
 
-  static constexpr unsigned tileWidth = width / maxTilesX; // of world units
+  static constexpr unsigned tileWidth = width / maxTilesX;   // of world units
   static constexpr unsigned tileHeight = height / maxTilesY; // of world units
 
   // the world space should be able to cover multiples of tiles
@@ -57,6 +64,5 @@ private:
 
   std::vector<Tile> tileMap;
 
-  SDL_FPoint ball;
-  float ballRadius = 5.0;
+  Ball ball;
 };

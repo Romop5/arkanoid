@@ -41,12 +41,18 @@ World::World()
   }
 
   // initialize ball
-  ball = SDL_FPoint{ width / 2.0f, height - ballRadius * 2.0f };
+  ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
+
+  // initially: 1unit/second upward
+  ball.speed = { 0, -10 };
 }
 
 void
 World::update(std::chrono::microseconds delta)
 {
+  const auto elapsedSeconds = delta.count() / static_cast<float>(1000'1000.0);
+  ball.position.x += elapsedSeconds * ball.speed.x;
+  ball.position.y += elapsedSeconds * ball.speed.y;
 }
 
 void
@@ -68,10 +74,10 @@ World::render(Application& app)
     SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
 
     SDL_Rect ballBody;
-    ballBody.x = ball.x - ballRadius;
-    ballBody.y = ball.y - ballRadius;
-    ballBody.w = 2.0 * ballRadius;
-    ballBody.h = 2.0 * ballRadius;
+    ballBody.x = ball.position.x - ball.radius;
+    ballBody.y = ball.position.y - ball.radius;
+    ballBody.w = 2.0 * ball.radius;
+    ballBody.h = 2.0 * ball.radius;
 
     const auto rect = worldToViewCoordinates(app, ballBody);
 
