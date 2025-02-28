@@ -9,7 +9,8 @@ constexpr int screenHeight = 480;
 
 struct Application
 {
-  std::shared_ptr<SDL_Window> window;
+  utils::RaiiOwnership<SDL_Window> window;
+  utils::RaiiOwnership<SDL_Renderer> renderer;
   SDL_Surface* surface;
 };
 
@@ -17,14 +18,11 @@ void
 createApplication(Application& application,
                   std::function<void()> renderCallback)
 {
-
-  // Initialize SDL
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     throw std::runtime_error(
       std::format("SDL could not initialize! SDL_Error: %s\n", SDL_GetError()));
   }
 
-  // Create window
   application.window = utils::make_raii_deleter<SDL_Window>(
     SDL_CreateWindow("Arkanoid",
                      SDL_WINDOWPOS_UNDEFINED,
@@ -37,12 +35,16 @@ createApplication(Application& application,
   utils::throw_if_null(application.window.get(),
                        "Failed to initialize SDL Window");
 
+  application.renderer = utils::make_raii_deleter<SDL_Renderer>(
+    utils::throw_if_null(SDL_CreateRenderer(application.window.get(), -1, NULL),
+                         "Failed to initialize renderer"),
+    [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
+
   // Get window surface
   application.surface =
     utils::throw_if_null(SDL_GetWindowSurface(application.window.get()),
                          "Failed to obtain SDL's window surface");
 
-  // Hack to get window to stay up
   SDL_Event e;
   bool quit = false;
   while (quit == false) {
@@ -51,9 +53,9 @@ createApplication(Application& application,
         quit = true;
     }
 
+    SDL_RenderClear(application.renderer.get());
     renderCallback();
-
-    SDL_UpdateWindowSurface(application.window.get());
+    SDL_RenderPresent(application.renderer.get());
   }
 
   SDL_Quit();
@@ -64,11 +66,9 @@ main(int argc, char* args[])
 {
   Application app;
   createApplication(app, [&]() {
-
     const auto time = SDL_GetTicks();
 
-    SDL_FillRect(
-      app.surface, NULL, SDL_MapRGB(app.surface->format, time % 0xFF, 0xFF, 0xFF));
+    SDL_SetRenderDrawColor(app.renderer.get(), time % 0xFF, 0xFF, 0xFF, 0xFF);
   });
 
   return 0;
