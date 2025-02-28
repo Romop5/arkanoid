@@ -1,18 +1,15 @@
-#include "utils.hpp"
 #include <SDL.h>
+
+#include "application.hpp"
+#include "utils.hpp"
+#include "world.hpp"
 #include <format>
 #include <functional>
+#include <chrono>
 
 // Screen dimension constants
 constexpr int screenWidth = 640;
 constexpr int screenHeight = 480;
-
-struct Application
-{
-  utils::RaiiOwnership<SDL_Window> window;
-  utils::RaiiOwnership<SDL_Renderer> renderer;
-  SDL_Surface* surface;
-};
 
 void
 createApplication(Application& application,
@@ -53,6 +50,7 @@ createApplication(Application& application,
         quit = true;
     }
 
+    SDL_SetRenderDrawColor(application.renderer.get(), 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderClear(application.renderer.get());
     renderCallback();
     SDL_RenderPresent(application.renderer.get());
@@ -65,10 +63,15 @@ int
 main(int argc, char* args[])
 {
   Application app;
-  createApplication(app, [&]() {
-    const auto time = SDL_GetTicks();
+  World world;
 
-    SDL_SetRenderDrawColor(app.renderer.get(), time % 0xFF, 0xFF, 0xFF, 0xFF);
+  auto lastFrame = std::chrono::high_resolution_clock::now();
+
+  createApplication(app, [&]() {
+    const auto delta = std::chrono::high_resolution_clock::now() - lastFrame;
+    world.update(std::chrono::duration_cast<std::chrono::microseconds>(delta));
+    lastFrame = std::chrono::high_resolution_clock::now();
+    world.render(app);
   });
 
   return 0;
