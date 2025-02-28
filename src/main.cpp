@@ -6,6 +6,7 @@
 #include <format>
 #include <functional>
 #include <chrono>
+#include <thread>
 
 // Screen dimension constants
 constexpr int screenWidth = 640;
@@ -62,16 +63,25 @@ createApplication(Application& application,
 int
 main(int argc, char* args[])
 {
+  using namespace std::chrono_literals;
+
   Application app;
   World world;
 
   auto lastFrame = std::chrono::high_resolution_clock::now();
 
   createApplication(app, [&]() {
-    const auto delta = std::chrono::high_resolution_clock::now() - lastFrame;
+    const auto now = std::chrono::high_resolution_clock::now();
+    const auto delta = now - lastFrame;
+
     world.update(std::chrono::duration_cast<std::chrono::microseconds>(delta));
+
     lastFrame = std::chrono::high_resolution_clock::now();
+
     world.render(app);
+
+    // FPS lock on circa 60FPS
+    std::this_thread::sleep_until(now+16ms);
   });
 
   return 0;

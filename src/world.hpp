@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <chrono>
 #include <vector>
+#include <queue>
 
 #include "application.hpp"
 
@@ -15,10 +16,13 @@ static constexpr auto gray = SDL_Color{ 0x33, 0x33, 0x33, 0xFF };
 static constexpr auto black = SDL_Color{ 0x00, 0x00, 0x00, 0xFF };
 } // namespace color
 
+using TileID = unsigned;
 struct Tile
 {
+  TileID id = -1;
+
   //! Position with width/height (in world units)
-  SDL_Rect body = { 0, 0, 0, 0 };
+  SDL_FRect body = { 0, 0, 0, 0 };
 
   //! Color when drawing tile
   SDL_Color color = Color::white;
@@ -31,7 +35,17 @@ struct Ball
 {
   SDL_FPoint position = { 0, 0 };
   SDL_FPoint speed = { 0, 0 }; // units/second
-  float radius = 5.0;
+  float radius = 50.0;
+
+  SDL_FRect getBoundingRect()
+  {
+    SDL_FRect ballBody;
+    ballBody.x = position.x - radius;
+    ballBody.y = position.y - radius;
+    ballBody.w = 2.0 * radius;
+    ballBody.h = 2.0 * radius;
+    return ballBody;
+  }
 };
 
 /**
@@ -40,17 +54,23 @@ struct Ball
 class World
 {
 public:
+  using Event = std::function<void()>;
+public:
   World();
 
   void update(std::chrono::microseconds delta);
   void render(Application& app);
 
 protected:
-  SDL_Rect worldToViewCoordinates(Application&, SDL_Rect units);
+
+  //! Event: ball hit tile
+  void onBallHitTile(TileID id);
+
+  SDL_Rect worldToViewCoordinates(Application&, SDL_FRect units);
 
 private:
-  static constexpr unsigned width = 100;  // of world units
-  static constexpr unsigned height = 300; // of world units
+  static constexpr unsigned width = 1000; // of world units
+  static constexpr unsigned height = 750; // of world units
 
   static constexpr unsigned maxTilesX = 10;
   static constexpr unsigned maxTilesY = 10;
@@ -65,4 +85,7 @@ private:
   std::vector<Tile> tileMap;
 
   Ball ball;
+
+  //! FIFO of events
+  std::queue<Event> events;
 };
