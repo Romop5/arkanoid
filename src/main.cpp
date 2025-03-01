@@ -49,6 +49,9 @@ createApplication(Application& application,
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT)
         quit = true;
+      if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
+        application.isStopped = !application.isStopped;
+      }
     }
 
     const auto frameBeggining = std::chrono::high_resolution_clock::now();
@@ -80,7 +83,10 @@ main(int argc, char* args[])
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
 
-    world.update(std::chrono::duration_cast<std::chrono::microseconds>(delta));
+    if (!app.isStopped) {
+      world.update(
+        std::chrono::duration_cast<std::chrono::microseconds>(delta));
+    }
 
     lastFrame = std::chrono::high_resolution_clock::now();
 

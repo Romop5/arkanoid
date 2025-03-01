@@ -8,4 +8,6 @@ struct Application
   utils::RaiiOwnership<SDL_Window> window;
   utils::RaiiOwnership<SDL_Renderer> renderer;
   SDL_Surface* surface;
+
+  bool isStopped = { false };
 };
