@@ -62,7 +62,10 @@ public:
   void render(Application& app);
 
 protected:
-  void updateBallPosition(Ball& ball, std::chrono::microseconds delta);
+  void updateBallDynamics(Ball& ball, std::chrono::microseconds delta);
+  bool collidesBallWithWorldBoundaries(Ball& ball);
+  void correctBallAgainstWorldBoundaries(Ball& ball);
+  bool detectBallCollisions(Ball& ball, bool reportCollisions);
 
 protected:
   //! Event: ball hit tile

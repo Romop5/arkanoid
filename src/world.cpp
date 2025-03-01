@@ -78,16 +78,22 @@ World::update(std::chrono::microseconds delta)
     events.pop();
   }
 
-  const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
-
+  Ball ballBackup = ball;
+  
+  // dry run: simulate movement and detect if any collision could happened on the way
   updateBallDynamics(ball, delta);
+  bool hasAnyCollision = detectBallCollisions(ball, false);
 
-  // detect ball collision
-  const auto ballBody = ball.getBoundingRect();
-  for (const auto& tile : tileMap) {
-    if (SDL_HasIntersectionF(&ballBody, &tile.body)) {
-      events.push([=]() { onBallHitTile(tile.id); });
-      break;
+  // if ball has a potential collision, revert the state to initial and do microstepping
+  if (hasAnyCollision) {
+    ball = ballBackup;
+
+    constexpr auto microstepsCount = 3;
+    const auto microDelta = delta / microstepsCount;
+    for (int i = 0; i < microstepsCount; i++) {
+      updateBallDynamics(ball, microDelta);
+      correctBallAgainstWorldBoundaries(ball);
+      detectBallCollisions(ball, true);
     }
   }
 }
@@ -124,7 +130,22 @@ World::updateBallDynamics(Ball& ball, std::chrono::microseconds delta)
 
   ball.position.x += elapsedSeconds * ball.speed.x;
   ball.position.y += elapsedSeconds * ball.speed.y;
+}
 
+bool
+World::collidesBallWithWorldBoundaries(Ball& ball)
+{
+  bool isAboveWorld = (ball.position.y - ball.radius < 0);
+  bool isBelowWorld = (ball.position.y + ball.radius > height);
+  bool isLeftWorld = (ball.position.x - ball.radius < 0);
+  bool isRightWorld = (ball.position.x + ball.radius > width);
+
+  return isAboveWorld || isBelowWorld || isLeftWorld || isRightWorld;
+}
+
+void
+World::correctBallAgainstWorldBoundaries(Ball& ball)
+{
   bool isAboveWorld = (ball.position.y - ball.radius < 0);
   bool isBelowWorld = (ball.position.y + ball.radius > height);
   bool isLeftWorld = (ball.position.x - ball.radius < 0);
@@ -156,6 +177,24 @@ World::updateBallDynamics(Ball& ball, std::chrono::microseconds delta)
   }
 }
 
+bool
+World::detectBallCollisions(Ball& ball, bool reportCollisions)
+{
+  bool hasAnyCollision = false;
+  const auto ballBody = ball.getBoundingRect();
+  for (const auto& tile : tileMap) {
+    if (SDL_HasIntersectionF(&ballBody, &tile.body)) {
+      if (!reportCollisions) {
+        return true;
+      }
+      hasAnyCollision = true;
+      events.push([=]() { onBallHitTile(tile.id); });
+    }
+  }
+
+  return hasAnyCollision;
+}
+
 void
 World::onBallHitTile(TileID id)
 {
@@ -167,21 +206,18 @@ World::onBallHitTile(TileID id)
   // initially: 1unit/second upward
   ball.speed = { 0, -(height / 3.0) };
 
-  auto it = std::find_if(tileMap.begin(),
-                               tileMap.end(),
-                               [=](const Tile& tile) { return tile.id == id; });
+  auto it = std::find_if(tileMap.begin(), tileMap.end(), [=](const Tile& tile) {
+    return tile.id == id;
+  });
 
   // delete tile if is dead
-  if (it != tileMap.end())
-  {
+  if (it != tileMap.end()) {
     it->lifes--;
 
-    if (it->lifes == 0)
-    {
+    if (it->lifes == 0) {
       tileMap.erase(it);
     }
   }
-
 }
 
 SDL_Rect
