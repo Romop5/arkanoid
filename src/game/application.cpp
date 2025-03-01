@@ -1,11 +1,8 @@
 #include <format>
 #include <chrono>
 
+#include "constants.hpp"
 #include "application.hpp"
-
-// Screen dimension constants
-constexpr int screenWidth = 640;
-constexpr int screenHeight = 480;
 
 void
 createApplication(Application& application)
@@ -19,8 +16,8 @@ createApplication(Application& application)
     SDL_CreateWindow("Arkanoid",
                      SDL_WINDOWPOS_UNDEFINED,
                      SDL_WINDOWPOS_UNDEFINED,
-                     screenWidth,
-                     screenHeight,
+                     Constants::screenWidth,
+                     Constants::screenHeight,
                      SDL_WINDOW_SHOWN),
     [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
 

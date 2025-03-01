@@ -12,6 +12,10 @@ static constexpr auto black = SDL_Color{ 0x00, 0x00, 0x00, 0xFF };
 } // namespace color
 
 namespace Constants {
+// Screen dimension constants
+constexpr int screenWidth = 640;
+constexpr int screenHeight = 480;
+
 static constexpr unsigned worldWidth = 1000; // of world units
 static constexpr unsigned worldHeight = 750; // of world units
 
