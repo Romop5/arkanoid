@@ -185,9 +185,11 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
   }
 
   if (key.sym == SDLK_SPACE && isKeyDown) {
-    if (!ball.has_value()) {
-      initializeBall();
-    }
+    onReleaseBall();
+  }
+
+    if (key.sym == SDLK_r && isKeyDown) {
+    onRestart();
   }
 }
 
@@ -345,6 +347,20 @@ World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
   }
 
   return { false, false };
+}
+
+void
+World::onRestart()
+{
+  initializeWorld();
+}
+
+void
+World::onReleaseBall()
+{
+  if (!ball.has_value()) {
+    initializeBall();
+  }
 }
 
 void

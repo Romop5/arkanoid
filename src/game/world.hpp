@@ -78,6 +78,12 @@ protected:
                                                        SDL_FRect rect);
 
 protected:
+  //! Event: reinitialize the game
+  void onRestart();
+
+  //! Event: release ball from paddle if possible
+  void onReleaseBall();
+
   //! Event: ball hit tile
   void onBallHitTile(TileID id);
 
