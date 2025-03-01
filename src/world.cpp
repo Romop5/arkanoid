@@ -94,20 +94,19 @@ World::update(std::chrono::microseconds delta)
     }
 
     if (isAboveWorld) {
-      ball.position.y *= -1;
-      ball.position.y += 1;
+      ball.position.y = ball.radius;
     }
 
     if (isBelowWorld) {
-      ball.position.y -= ball.position.y - height;
+      ball.position.y = height-ball.radius;
     }
 
     if (isLeftWorld) {
-      ball.position.x *= -1;
+      ball.position.x = ball.radius;
     }
 
     if (isRightWorld) {
-      ball.position.x -= ball.position.x - width;
+      ball.position.x = width - ball.radius;
     }
   }
 
