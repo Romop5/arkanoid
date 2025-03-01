@@ -4,8 +4,21 @@ project(arkanoid)
 
 find_package(SDL2 REQUIRED)
 
-file(GLOB akranoid_sources "src/*")
+file(GLOB game_sources "src/game/*")
+add_library(game)
+target_sources(game PRIVATE ${game_sources})
+target_link_libraries(game PUBLIC SDL2::SDL2)
+target_include_directories(game PUBLIC "src/")
+set_property(TARGET game PROPERTY CXX_STANDARD 20)
+
+file(GLOB akranoid_sources "src/main.cpp")
 add_executable(arkanoid WIN32)
 target_sources(arkanoid PRIVATE ${akranoid_sources})
-target_link_libraries(arkanoid PRIVATE SDL2::SDL2 SDL2::SDL2main)
+target_link_libraries(arkanoid PRIVATE game SDL2::SDL2main)
 set_property(TARGET arkanoid PROPERTY CXX_STANDARD 20)
+
+file(GLOB sandbox_sources "src/sandbox.cpp")
+add_executable(sandbox)
+target_sources(sandbox PRIVATE ${sandbox_sources})
+target_link_libraries(sandbox PRIVATE game SDL2::SDL2main)
+set_property(TARGET sandbox PROPERTY CXX_STANDARD 20)

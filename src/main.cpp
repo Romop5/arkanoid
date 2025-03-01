@@ -1,8 +1,8 @@
 #include <SDL.h>
 
-#include "application.hpp"
-#include "utils.hpp"
-#include "world.hpp"
+#include "game/application.hpp"
+#include "game/utils.hpp"
+#include "game/world.hpp"
 #include <format>
 #include <functional>
 #include <chrono>

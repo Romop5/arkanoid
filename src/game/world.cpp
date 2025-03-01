@@ -189,6 +189,10 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
       }
       hasAnyCollision = true;
       events.push([=]() { onBallHitTile(tile.id); });
+
+      // correct speed/position?
+
+
     }
   }
 
