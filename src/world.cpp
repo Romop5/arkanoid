@@ -59,7 +59,7 @@ World::World()
   ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
 
   // initially: 1unit/second upward
-  ball.speed = { 0, -(height / 3.0) };
+  ball.speed = { -50, -(height / 3.0) };
 }
 
 void
@@ -81,8 +81,8 @@ World::update(std::chrono::microseconds delta)
 
     bool isAboveWorld = (ball.position.y - ball.radius < 0);
     bool isBelowWorld = (ball.position.y + ball.radius > height);
-    bool isRightWorld = (ball.position.x - ball.radius < 0);
-    bool isLeftWorld = (ball.position.x + ball.radius > width);
+    bool isLeftWorld = (ball.position.x - ball.radius < 0);
+    bool isRightWorld = (ball.position.x + ball.radius > width);
 
     if ((isAboveWorld && ball.speed.y < 0) ||
         (isBelowWorld && ball.speed.y > 0)) {
