@@ -60,15 +60,7 @@ World::initialize()
       tileMap.push_back(tile);
     }
   }
-
-  // initialize ball
-  {
-    ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
-
-    // initially: 1unit/second upward
-    ball.speed = { -50, -(height / 3.0) };
-  }
-
+  
   // initialize paddle
   {
     paddle.body.w = 100;
@@ -76,6 +68,19 @@ World::initialize()
     paddle.body.x = (width / 2.0) - (paddle.body.w * 0.5);
     paddle.body.y = (height - 20) - (paddle.body.h * 0.5);
   }
+
+  initializeBall();
+}
+
+void
+World::initializeBall()
+{
+  ball = Ball();
+  ball->position =
+    SDL_FPoint{ paddle.body.x + paddle.body.w*0.5f, height - ball->radius * 2.0f };
+
+  // initially: 1unit/second upward
+  ball->speed = { -50, -(height / 3.0) };
 }
 
 void
@@ -88,36 +93,43 @@ World::update(std::chrono::microseconds delta)
     delta = 34ms;
   }
 
+  if (ball && hasBallFallenDown(*ball)) {
+    events.push([=]() { onBallFallDown(); });
+  }
+
   // process events
   while (!events.empty()) {
     events.front()();
     events.pop();
   }
 
-  Ball ballBackup = ball;
   Paddle paddleBackup = paddle;
 
   // dry run: simulate movement and detect if any collision could happened on
   // the way
   updatePaddleDynamics(paddle, delta);
-  updateBallDynamics(ball, delta);
 
-  bool hasAnyCollision =
-    detectBallCollisions(ball, false) || collidesBallWithWorldBoundaries(ball);
+  if (ball.has_value()) {
+    Ball ballBackup = *ball;
+    updateBallDynamics(*ball, delta);
 
-  // if ball has a potential collision, revert the state to initial and do
-  // microstepping
-  if (hasAnyCollision) {
-    ball = ballBackup;
-    paddle = paddleBackup;
+    bool hasAnyCollision = detectBallCollisions(*ball, false) ||
+                           collidesBallWithWorldBoundaries(*ball);
 
-    constexpr auto microstepsCount = 3;
-    const auto microDelta = delta / microstepsCount;
-    for (int i = 0; i < microstepsCount; i++) {
-      updatePaddleDynamics(paddle, microDelta);
-      updateBallDynamics(ball, microDelta);
-      correctBallAgainstWorldBoundaries(ball);
-      detectBallCollisions(ball, true);
+    // if ball has a potential collision, revert the state to initial and do
+    // microstepping
+    if (hasAnyCollision) {
+      ball = ballBackup;
+      paddle = paddleBackup;
+
+      constexpr auto microstepsCount = 3;
+      const auto microDelta = delta / microstepsCount;
+      for (int i = 0; i < microstepsCount; i++) {
+        updatePaddleDynamics(paddle, microDelta);
+        updateBallDynamics(*ball, microDelta);
+        correctBallAgainstWorldBoundaries(*ball);
+        detectBallCollisions(*ball, true);
+      }
     }
   }
 }
@@ -136,11 +148,11 @@ World::render(Application& app)
   }
 
   // render ball
-  {
+  if (ball) {
     const auto& c = Color::black;
     SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
 
-    SDL_FRect ballBody = ball.getBoundingRect();
+    SDL_FRect ballBody = ball->getBoundingRect();
     const auto rect = worldToViewCoordinates(app, ballBody);
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
@@ -168,6 +180,12 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
 
   if (key.sym == SDLK_RIGHT) {
     paddle.keys[ControllerKeys::move_right] = isKeyDown;
+  }
+
+  if (key.sym == SDLK_SPACE && isKeyDown) {
+    if (!ball.has_value()) {
+      initializeBall();
+    }
   }
 }
 
@@ -200,12 +218,19 @@ World::updateBallDynamics(Ball& ball, std::chrono::microseconds delta)
 }
 
 bool
+World::hasBallFallenDown(Ball& ball)
+{
+  const bool isBelowWorld = (ball.position.y + ball.radius > (height - 10));
+  return isBelowWorld;
+}
+
+bool
 World::collidesBallWithWorldBoundaries(Ball& ball)
 {
-  bool isAboveWorld = (ball.position.y - ball.radius < 0);
-  bool isBelowWorld = (ball.position.y + ball.radius > height);
-  bool isLeftWorld = (ball.position.x - ball.radius < 0);
-  bool isRightWorld = (ball.position.x + ball.radius > width);
+  const bool isAboveWorld = (ball.position.y - ball.radius < 0);
+  const bool isBelowWorld = (ball.position.y + ball.radius > height);
+  const bool isLeftWorld = (ball.position.x - ball.radius < 0);
+  const bool isRightWorld = (ball.position.x + ball.radius > width);
 
   return isAboveWorld || isBelowWorld || isLeftWorld || isRightWorld;
 }
@@ -255,7 +280,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     if (SDL_HasIntersectionF(&ballBody, &body)) {
       hasAnyCollision = true;
 
-      invertSpeed = resolveBallSpeedCollisionAfter(body);
+      invertSpeed = resolveBallSpeedCollisionAfter(ball, body);
       return true;
     }
     return false;
@@ -287,7 +312,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
 }
 
 std::pair<bool, bool>
-World::resolveBallSpeedCollisionAfter(SDL_FRect rect)
+World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
 {
   const auto state = ball.getCollisionStateForGivenRect(rect);
 
@@ -342,6 +367,12 @@ World::onBallHitTile(TileID id)
       tileMap.erase(it);
     }
   }
+}
+
+void
+World::onBallFallDown()
+{
+  ball.reset();
 }
 
 SDL_Rect

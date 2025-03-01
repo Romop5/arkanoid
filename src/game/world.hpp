@@ -12,6 +12,7 @@
 
 #include "application.hpp"
 #include "ball.hpp"
+#include <optional>
 
 namespace Color {
 static constexpr auto white = SDL_Color{ 0xFF, 0xFF, 0xFF, 0xFF };
@@ -39,9 +40,9 @@ struct Tile
 
 enum ControllerKeys
 {
-	move_left = 0,
-	move_right,
-	size
+  move_left = 0,
+  move_right,
+  size
 };
 
 struct Paddle
@@ -63,6 +64,7 @@ public:
   World();
 
   void initialize();
+  void initializeBall();
 
   void update(std::chrono::microseconds delta);
   void render(Application& app);
@@ -73,14 +75,21 @@ public:
 protected:
   void updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta);
   void updateBallDynamics(Ball& ball, std::chrono::microseconds delta);
+
+  bool hasBallFallenDown(Ball& ball);
   bool collidesBallWithWorldBoundaries(Ball& ball);
+
   void correctBallAgainstWorldBoundaries(Ball& ball);
   bool detectBallCollisions(Ball& ball, bool reportCollisions);
-  std::pair<bool, bool> resolveBallSpeedCollisionAfter(SDL_FRect rect);
+  std::pair<bool, bool> resolveBallSpeedCollisionAfter(Ball& ball,
+                                                       SDL_FRect rect);
 
 protected:
   //! Event: ball hit tile
   void onBallHitTile(TileID id);
+
+  //! Event: ball hit tile
+  void onBallFallDown();
 
   SDL_Rect worldToViewCoordinates(Application&, SDL_FRect units);
 
@@ -100,7 +109,7 @@ private:
 
   std::vector<Tile> tileMap;
 
-  Ball ball;
+  std::optional<Ball> ball;
 
   Paddle paddle;
 
