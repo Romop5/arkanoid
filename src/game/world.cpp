@@ -1,5 +1,6 @@
 #include "world.hpp"
 
+#include <cmath>
 #include <cstdlib>
 
 namespace {
@@ -17,10 +18,10 @@ auto
 frecTorec(SDL_FRect frec) -> SDL_Rect
 {
   SDL_Rect result;
-  result.x = static_cast<int>(frec.x);
-  result.y = static_cast<int>(frec.y);
-  result.w = static_cast<int>(frec.w);
-  result.h = static_cast<int>(frec.h);
+  result.x = static_cast<int>(std::roundf(frec.x));
+  result.y = static_cast<int>(std::roundf(frec.y));
+  result.w = static_cast<int>(std::roundf(frec.w));
+  result.h = static_cast<int>(std::roundf(frec.h));
 
   return result;
 }

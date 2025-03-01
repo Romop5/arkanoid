@@ -1,8 +1,9 @@
-#include <format>
 #include <chrono>
+#include <format>
+#include <thread>
 
-#include "constants.hpp"
 #include "application.hpp"
+#include "constants.hpp"
 
 void
 createApplication(Application& application)
@@ -25,8 +26,11 @@ createApplication(Application& application)
                        "Failed to initialize SDL Window");
 
   application.renderer = utils::make_raii_deleter<SDL_Renderer>(
-    utils::throw_if_null(SDL_CreateRenderer(application.window.get(), -1, NULL),
-                         "Failed to initialize renderer"),
+    utils::throw_if_null(
+      SDL_CreateRenderer(application.window.get(),
+                         -1,
+                         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+      "Failed to initialize renderer"),
     [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
 
   // Get window surface
@@ -58,7 +62,7 @@ createApplication(Application& application)
 
     // FPS lock on circa 60FPS
     using namespace std::chrono_literals;
-    //std::this_thread::sleep_until(frameBeggining + 16ms);
+    std::this_thread::sleep_until(frameBeggining + 16ms);
   }
 
   SDL_Quit();
