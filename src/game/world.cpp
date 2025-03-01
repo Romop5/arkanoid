@@ -4,7 +4,7 @@
 
 namespace {
 static const auto standardColors =
-  std::vector<SDL_Color>{ Color::white, Color::red, Color::blue, Color::green };
+  std::vector<SDL_Color>{ Color::red, Color::blue, Color::green };
 
 auto
 getRandomStandardColor() -> SDL_Color
