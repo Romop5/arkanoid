@@ -188,7 +188,7 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
     onReleaseBall();
   }
 
-    if (key.sym == SDLK_r && isKeyDown) {
+  if (key.sym == SDLK_r && isKeyDown) {
     onRestart();
   }
 }
@@ -196,17 +196,11 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
 void
 World::updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta)
 {
-  const auto paddleSpeed = 1000;
+  const auto speed = paddle.getCurrentSpeed();
 
   const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
-  const auto movement = paddleSpeed * elapsedSeconds;
-
-  const bool moveLeft = paddle.keys[ControllerKeys::move_left];
-  const bool moveRight = paddle.keys[ControllerKeys::move_right];
-  if (moveLeft)
-    paddle.body.x -= movement;
-  if (moveRight)
-    paddle.body.x += movement;
+  const auto movement = speed * elapsedSeconds;
+  paddle.body.x += movement;
 
   // keep within world
   paddle.body.x =
@@ -301,9 +295,11 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
   }
 
   // against paddle
+
+  bool hasPaddleCollision = false;
   {
     const auto body = paddle.body;
-    bool hasCollision = detectBallVsBodyCollision(body);
+    hasPaddleCollision = detectBallVsBodyCollision(body);
   }
 
   if (reportCollisions) {
@@ -313,6 +309,11 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     }
     if (invertSpeed.second) {
       ball.speed.y *= -1.0f;
+    }
+
+    if (hasPaddleCollision) {
+      const auto speed = paddle.getCurrentSpeed();
+      ball.speed.x += speed*0.3;
     }
   }
 
@@ -412,4 +413,21 @@ World::worldToViewCoordinates(Application& app, SDL_FRect units)
   units.h *= heightRatio;
 
   return frecTorec(units);
+}
+
+float
+Paddle::getCurrentSpeed() const
+{
+  const auto movement = Constants::paddleSpeed;
+
+  const bool moveLeft = keys[ControllerKeys::move_left];
+  const bool moveRight = keys[ControllerKeys::move_right];
+
+  float speed = 0.0f;
+  if (moveLeft)
+    speed -= movement;
+  if (moveRight)
+    speed += movement;
+
+  return speed;
 }

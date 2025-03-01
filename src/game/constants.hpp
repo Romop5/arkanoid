@@ -30,8 +30,10 @@ static constexpr unsigned tileHeight =
 static_assert(worldWidth % tileWidth == 0);
 static_assert(worldHeight % tileHeight == 0);
 
-static constexpr float paddleWidth = worldWidth * 0.1;
+static constexpr float paddleWidth = worldWidth * 0.2;
 static constexpr float paddleHeight = worldHeight * 0.01;
+
+const auto paddleSpeed = 1000;
 
 static constexpr float ballRadius = tileWidth * 0.15;
 static constexpr float ballSpeed = 500;

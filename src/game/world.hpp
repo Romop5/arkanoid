@@ -43,6 +43,8 @@ struct Paddle
   SDL_FRect body;
 
   std::bitset<ControllerKeys::size> keys;
+
+  float getCurrentSpeed() const;
 };
 
 /**
