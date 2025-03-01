@@ -62,7 +62,9 @@ public:
   void render(Application& app);
 
 protected:
+  void updateBallPosition(Ball& ball, std::chrono::microseconds delta);
 
+protected:
   //! Event: ball hit tile
   void onBallHitTile(TileID id);
 

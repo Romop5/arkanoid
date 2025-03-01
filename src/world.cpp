@@ -73,42 +73,7 @@ World::update(std::chrono::microseconds delta)
 
   const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
 
-  // update ball position
-  {
-
-    ball.position.x += elapsedSeconds * ball.speed.x;
-    ball.position.y += elapsedSeconds * ball.speed.y;
-
-    bool isAboveWorld = (ball.position.y - ball.radius < 0);
-    bool isBelowWorld = (ball.position.y + ball.radius > height);
-    bool isLeftWorld = (ball.position.x - ball.radius < 0);
-    bool isRightWorld = (ball.position.x + ball.radius > width);
-
-    if ((isAboveWorld && ball.speed.y < 0) ||
-        (isBelowWorld && ball.speed.y > 0)) {
-      ball.speed.y *= -1;
-    }
-
-    if (isLeftWorld || isRightWorld) {
-      ball.speed.x *= -1;
-    }
-
-    if (isAboveWorld) {
-      ball.position.y = ball.radius;
-    }
-
-    if (isBelowWorld) {
-      ball.position.y = height-ball.radius;
-    }
-
-    if (isLeftWorld) {
-      ball.position.x = ball.radius;
-    }
-
-    if (isRightWorld) {
-      ball.position.x = width - ball.radius;
-    }
-  }
+  updateBallDynamics(ball, delta);
 
   // detect ball collision
   const auto ballBody = ball.getBoundingRect();
@@ -142,6 +107,45 @@ World::render(Application& app)
     const auto rect = worldToViewCoordinates(app, ballBody);
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
+  }
+}
+
+void
+World::updateBallDynamics(Ball& ball, std::chrono::microseconds delta)
+{
+  const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
+
+  ball.position.x += elapsedSeconds * ball.speed.x;
+  ball.position.y += elapsedSeconds * ball.speed.y;
+
+  bool isAboveWorld = (ball.position.y - ball.radius < 0);
+  bool isBelowWorld = (ball.position.y + ball.radius > height);
+  bool isLeftWorld = (ball.position.x - ball.radius < 0);
+  bool isRightWorld = (ball.position.x + ball.radius > width);
+
+  if ((isAboveWorld && ball.speed.y < 0) ||
+      (isBelowWorld && ball.speed.y > 0)) {
+    ball.speed.y *= -1;
+  }
+
+  if (isLeftWorld || isRightWorld) {
+    ball.speed.x *= -1;
+  }
+
+  if (isAboveWorld) {
+    ball.position.y = ball.radius;
+  }
+
+  if (isBelowWorld) {
+    ball.position.y = height - ball.radius;
+  }
+
+  if (isLeftWorld) {
+    ball.position.x = ball.radius;
+  }
+
+  if (isRightWorld) {
+    ball.position.x = width - ball.radius;
   }
 }
 
