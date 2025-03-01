@@ -79,12 +79,15 @@ World::update(std::chrono::microseconds delta)
   }
 
   Ball ballBackup = ball;
-  
-  // dry run: simulate movement and detect if any collision could happened on the way
-  updateBallDynamics(ball, delta);
-  bool hasAnyCollision = detectBallCollisions(ball, false);
 
-  // if ball has a potential collision, revert the state to initial and do microstepping
+  // dry run: simulate movement and detect if any collision could happened on
+  // the way
+  updateBallDynamics(ball, delta);
+  bool hasAnyCollision =
+    detectBallCollisions(ball, false) || collidesBallWithWorldBoundaries(ball);
+
+  // if ball has a potential collision, revert the state to initial and do
+  // microstepping
   if (hasAnyCollision) {
     ball = ballBackup;
 
