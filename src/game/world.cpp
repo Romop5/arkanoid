@@ -89,6 +89,7 @@ World::initializeBall()
 void
 World::update(std::chrono::microseconds delta)
 {
+  const auto now = std::chrono::high_resolution_clock::now();
   using namespace std::chrono_literals;
   // slow down the game if FPS fall below 30 frames per second (33ms)
   // => prevent tunneling when updating movement and detecting collisions
@@ -96,15 +97,23 @@ World::update(std::chrono::microseconds delta)
     delta = 34ms;
   }
 
+  delta *= speed;
+
   if (ball && hasBallFallenDown(*ball)) {
-    events.push([=]() { onBallFallDown(); });
+    events.push(Event([=]() { onBallFallDown(); }));
   }
 
   // process events
   while (!events.empty()) {
-    events.front()();
-    events.pop();
+    if (events.top().deadline < now) {
+      events.top().callback();
+      events.pop();
+    } else {
+      break;
+    }
   }
+
+  updatePickups(delta);
 
   Paddle paddleBackup = paddle;
 
@@ -125,7 +134,7 @@ World::update(std::chrono::microseconds delta)
       ball = ballBackup;
       paddle = paddleBackup;
 
-      constexpr auto microstepsCount = 3;
+      constexpr auto microstepsCount = 10;
       const auto microDelta = delta / microstepsCount;
       for (int i = 0; i < microstepsCount; i++) {
         updatePaddleDynamics(paddle, microDelta);
@@ -135,17 +144,25 @@ World::update(std::chrono::microseconds delta)
       }
     }
   }
+
+  // update pickups and detect collisions
+  // note: pickups are moving slow, we don't need to the maskarade above
+
+  for (const auto& pickup : pickups) {
+    if (SDL_HasIntersectionF(&pickup.body, &paddle.body)) {
+    }
+  }
 }
 
 void
 World::render(Application& app)
 {
   // render tiles
-  for (const auto& tile : tileMap) {
-    const auto& c = tile.color;
+  for (const auto& entity : tileMap) {
+    const auto& c = entity.color;
     SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
 
-    const auto rect = worldToViewCoordinates(app, tile.body);
+    const auto rect = worldToViewCoordinates(app, entity.body);
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
@@ -171,6 +188,16 @@ World::render(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
+
+  // render pickups
+  for (const auto& entity : pickups) {
+    const auto& c = entity.color;
+    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+
+    const auto rect = worldToViewCoordinates(app, entity.body);
+
+    SDL_RenderFillRect(app.renderer.get(), &rect);
+  }
 }
 
 void
@@ -191,6 +218,35 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
 
   if (key.sym == SDLK_r && isKeyDown) {
     onRestart();
+  }
+}
+
+void
+World::updatePickups(std::chrono::microseconds delta)
+{
+  const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
+
+  for (auto it = pickups.begin(); it != pickups.end(); it++) {
+    bool shouldErase = false;
+    auto& pickup = *it;
+    const auto initialBody = pickup.body;
+
+    // update dynamics
+    pickup.body.y += Constants::pickupFallSpeed * elapsedSeconds;
+
+    // detect falling out of world
+    if (pickup.body.y > Constants::worldHeight - pickup.body.h * 0.5) {
+      events.push(Event([=]() { onPickupFallDown(pickup.id); }));
+      continue;
+    }
+
+    // detect colliding paddle
+    SDL_FRect pickupConvexHull = initialBody;
+    pickupConvexHull.h = pickup.body.y - initialBody.y + initialBody.h;
+
+    if (SDL_HasIntersectionF(&pickupConvexHull, &paddle.body)) {
+      events.push(Event([=]() { onPickupPicked(pickup.id); }));
+    }
   }
 }
 
@@ -291,7 +347,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
 
   for (const auto& tile : tileMap) {
     if (detectBallVsBodyCollision(tile.body) && reportCollisions) {
-      events.push([=]() { onBallHitTile(tile.id); });
+      events.push(Event([=]() { onBallHitTile(tile.id); }));
     }
   }
 
@@ -314,7 +370,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
 
     if (hasPaddleCollision) {
       const auto speed = paddle.getCurrentSpeed();
-      ball.speed.x += speed*0.3;
+      ball.speed.x += speed * 0.3;
     }
   }
 
@@ -352,6 +408,12 @@ World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
 }
 
 void
+World::setWorldSpeed(float ratio)
+{
+  speed = ratio;
+}
+
+void
 World::onRestart()
 {
   initializeWorld();
@@ -366,9 +428,9 @@ World::onReleaseBall()
 }
 
 void
-World::onBallHitTile(TileID id)
+World::onBallHitTile(EntityID id)
 {
-  SDL_Log("we hit it: %d", id);
+  SDL_Log("onBallHitTile: %d", id);
 
   /*
   {
@@ -383,20 +445,90 @@ World::onBallHitTile(TileID id)
     return tile.id == id;
   });
 
+  bool willBeDestroyed = false;
   // delete tile if is dead
   if (it != tileMap.end()) {
     it->lifes--;
 
     if (it->lifes == 0) {
-      tileMap.erase(it);
+      willBeDestroyed = true;
     }
+  }
+
+  // when tile was destroyed and with some lower chance, generate special pickup
+  if (willBeDestroyed && std::rand() % 5 == 0) {
+    static unsigned id = 0;
+    Pickup pickup;
+    pickup.id = id++;
+    pickup.type = static_cast<Pickup::Type>(std::rand() % Pickup::Type::size);
+    pickup.body = it->body;
+    pickup.color = it->color;
+
+    pickup.body.w *= 0.5;
+    pickup.body.h *= 0.5;
+
+    pickups.push_back(pickup);
+  }
+  if (willBeDestroyed) {
+    // destroy it
+    tileMap.erase(it);
   }
 }
 
 void
 World::onBallFallDown()
 {
+  SDL_Log("onBallFallDown");
   ball.reset();
+}
+
+void
+World::onPickupPicked(EntityID pickupId)
+{
+  SDL_Log("onPickupPicked: %d", pickupId);
+  auto it =
+    std::find_if(pickups.begin(), pickups.end(), [=](const Pickup& entity) {
+      return entity.id == pickupId;
+    });
+
+  // process events
+  if (it != pickups.end()) {
+    const auto& pickup = *it;
+    switch (pickup.type) {
+      case Pickup::Type::speedup: {
+        setWorldSpeed(2.0);
+        events.push(
+          Event(std::chrono::seconds(10), [=]() { setWorldSpeed(1.0); }));
+        break;
+      }
+
+      case Pickup::Type::slowdown: {
+        setWorldSpeed(1.0);
+        events.push(
+          Event(std::chrono::seconds(10), [=]() { setWorldSpeed(1.0); }));
+        break;
+      }
+    }
+  }
+
+  // delete it
+  if (it != pickups.end()) {
+    pickups.erase(it);
+  }
+}
+
+void
+World::onPickupFallDown(EntityID pickupId)
+{
+  SDL_Log("onPickupFallDown: %d", pickupId);
+  auto it =
+    std::find_if(pickups.begin(), pickups.end(), [=](const Pickup& entity) {
+      return entity.id == pickupId;
+    });
+  // delete it
+  if (it != pickups.end()) {
+    pickups.erase(it);
+  }
 }
 
 SDL_Rect

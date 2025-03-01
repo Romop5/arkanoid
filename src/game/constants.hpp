@@ -38,4 +38,6 @@ const auto paddleSpeed = 1000;
 static constexpr float ballRadius = tileWidth * 0.15;
 static constexpr float ballSpeed = 500;
 
+static constexpr float pickupFallSpeed = 300;
+
 } // namespace
