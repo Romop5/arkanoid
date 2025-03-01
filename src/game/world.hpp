@@ -69,23 +69,6 @@ struct Ball
              { b.x, b.y + b.h } };     // bottom-left
   }
 
-  SDL_FPoint cornerToClosestBoundaryDistance(SDL_FPoint corner, SDL_FRect rect)
-  {
-    const auto distanceToUpperBoundary = std::abs(corner.y - rect.y);
-    const auto distanceToBottomBoundary =
-      std::abs(corner.y - (rect.y + rect.h));
-
-    const auto distanceToLeftBoundary = std::abs(corner.x - rect.x);
-    const auto distanceToRightBoundary = std::abs(corner.x - (rect.x + rect.w));
-
-    const auto closestX =
-      std::min(distanceToLeftBoundary, distanceToRightBoundary);
-    const auto closestY =
-      std::min(distanceToUpperBoundary, distanceToBottomBoundary);
-
-    return SDL_FPoint(closestX, closestY);
-  }
-
   enum class CollisionState
   {
     no_collision,
@@ -99,6 +82,33 @@ struct Ball
     right_bottom_corner,
     full_inside,
   };
+
+  CollisionState cornerToClosestBoundaryDistance(SDL_FPoint corner,
+                                                 SDL_FRect rect)
+  {
+    const auto distanceToUpperBoundary = std::abs(corner.y - rect.y);
+    const auto distanceToBottomBoundary =
+      std::abs(corner.y - (rect.y + rect.h));
+
+    const auto distanceToLeftBoundary = std::abs(corner.x - rect.x);
+    const auto distanceToRightBoundary = std::abs(corner.x - (rect.x + rect.w));
+
+    const auto closestX =
+      std::min(distanceToLeftBoundary, distanceToRightBoundary);
+    const auto closestY =
+      std::min(distanceToUpperBoundary, distanceToBottomBoundary);
+
+    if (closestX < closestY) {
+      return (distanceToLeftBoundary < distanceToRightBoundary)
+               ? CollisionState::from_left
+               : CollisionState::from_right;
+    } else {
+
+      return (distanceToUpperBoundary < distanceToBottomBoundary)
+               ? CollisionState::from_above
+               : CollisionState::from_bottom;
+    }
+  }
 
   CollisionState getCollisionStateForGivenRect(SDL_FRect rect)
   {
@@ -116,27 +126,30 @@ struct Ball
 
     const auto cornersInsideCount = isCornerInside.count();
 
+    // false collision ? or rounding troubles
+    if (cornersInsideCount == 0) {
+      return CollisionState::no_collision;
+    }
+
     // impossible situation for two rectangles
     assert(cornersInsideCount != 3);
 
     switch (cornersInsideCount) {
       case 4:
         return CollisionState::full_inside;
-      case 1:
-      {
-        if (isCornerInside[Corner::top_left])
-          return CollisionState::right_bottom_corner;
-        if (isCornerInside[Corner::top_right])
-          return CollisionState::left_bottom_corner;
-        if (isCornerInside[Corner::bottom_left])
-          return CollisionState::right_top_corner;
-        if (isCornerInside[Corner::bottom_right])
-          return CollisionState::left_top_corner;
-        assert(false);
+      case 1: {
+        int index = 0;
+        for (int i = 0; i < 4; i++) {
+          if (isCornerInside[i]) {
+            index = i;
+            break;
+          }
+        }
+
+        return cornerToClosestBoundaryDistance(corners[index], rect);
       }
 
-      case 2:
-      {
+      case 2: {
         if (isCornerInside[Corner::top_left] &&
             isCornerInside[Corner::top_right])
           return CollisionState::from_bottom;
