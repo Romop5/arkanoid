@@ -29,6 +29,12 @@ frecTorec(SDL_FRect frec) -> SDL_Rect
 
 World::World()
 {
+  initialize();
+}
+
+void
+World::initialize()
+{
   // generate random tiles
   for (int x = 0; x < maxTilesX; x++) {
     for (int y = 0; y < maxTilesY - 3; y++) {
