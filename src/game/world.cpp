@@ -29,15 +29,15 @@ frecTorec(SDL_FRect frec) -> SDL_Rect
 
 World::World()
 {
-  initialize();
+  initializeWorld();
 }
 
 void
-World::initialize()
+World::initializeWorld()
 {
   // generate random tiles
-  for (int x = 0; x < maxTilesX; x++) {
-    for (int y = 0; y < maxTilesY - 3; y++) {
+  for (int x = 0; x < Constants::maxTilesX; x++) {
+    for (int y = 0; y < Constants::maxTilesY - 3; y++) {
 
       bool skipTile = std::rand() % 2;
       if (skipTile) {
@@ -45,10 +45,10 @@ World::initialize()
       }
 
       SDL_FRect body;
-      body.x = x * tileWidth;
-      body.y = y * tileHeight;
-      body.w = tileWidth;
-      body.h = tileHeight;
+      body.x = x * Constants::tileWidth;
+      body.y = y * Constants::tileHeight;
+      body.w = Constants::tileWidth;
+      body.h = Constants::tileHeight;
 
       Tile tile;
 
@@ -60,13 +60,13 @@ World::initialize()
       tileMap.push_back(tile);
     }
   }
-  
+
   // initialize paddle
   {
     paddle.body.w = 100;
     paddle.body.h = 10;
-    paddle.body.x = (width / 2.0) - (paddle.body.w * 0.5);
-    paddle.body.y = (height - 20) - (paddle.body.h * 0.5);
+    paddle.body.x = (Constants::worldWidth / 2.0) - (paddle.body.w * 0.5);
+    paddle.body.y = (Constants::worldHeight - 20) - (paddle.body.h * 0.5);
   }
 
   initializeBall();
@@ -76,11 +76,11 @@ void
 World::initializeBall()
 {
   ball = Ball();
-  ball->position =
-    SDL_FPoint{ paddle.body.x + paddle.body.w*0.5f, height - ball->radius * 2.0f };
+  ball->position = SDL_FPoint{ paddle.body.x + paddle.body.w * 0.5f,
+                               Constants::worldHeight - ball->radius * 2.0f };
 
   // initially: 1unit/second upward
-  ball->speed = { -50, -(height / 3.0) };
+  ball->speed = { -50, -(Constants::worldHeight / 3.0) };
 }
 
 void
@@ -205,7 +205,8 @@ World::updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta)
     paddle.body.x += movement;
 
   // keep within world
-  paddle.body.x = std::clamp(paddle.body.x, 0.0f, width - paddle.body.w);
+  paddle.body.x =
+    std::clamp(paddle.body.x, 0.0f, Constants::worldWidth - paddle.body.w);
 }
 
 void
@@ -220,7 +221,8 @@ World::updateBallDynamics(Ball& ball, std::chrono::microseconds delta)
 bool
 World::hasBallFallenDown(Ball& ball)
 {
-  const bool isBelowWorld = (ball.position.y + ball.radius > (height - 10));
+  const bool isBelowWorld =
+    (ball.position.y + ball.radius > (Constants::worldHeight - 10));
   return isBelowWorld;
 }
 
@@ -228,9 +230,11 @@ bool
 World::collidesBallWithWorldBoundaries(Ball& ball)
 {
   const bool isAboveWorld = (ball.position.y - ball.radius < 0);
-  const bool isBelowWorld = (ball.position.y + ball.radius > height);
+  const bool isBelowWorld =
+    (ball.position.y + ball.radius > Constants::worldHeight);
   const bool isLeftWorld = (ball.position.x - ball.radius < 0);
-  const bool isRightWorld = (ball.position.x + ball.radius > width);
+  const bool isRightWorld =
+    (ball.position.x + ball.radius > Constants::worldWidth);
 
   return isAboveWorld || isBelowWorld || isLeftWorld || isRightWorld;
 }
@@ -239,9 +243,9 @@ void
 World::correctBallAgainstWorldBoundaries(Ball& ball)
 {
   bool isAboveWorld = (ball.position.y - ball.radius < 0);
-  bool isBelowWorld = (ball.position.y + ball.radius > height);
+  bool isBelowWorld = (ball.position.y + ball.radius > Constants::worldHeight);
   bool isLeftWorld = (ball.position.x - ball.radius < 0);
-  bool isRightWorld = (ball.position.x + ball.radius > width);
+  bool isRightWorld = (ball.position.x + ball.radius > Constants::worldWidth);
 
   if ((isAboveWorld && ball.speed.y < 0) ||
       (isBelowWorld && ball.speed.y > 0)) {
@@ -257,7 +261,7 @@ World::correctBallAgainstWorldBoundaries(Ball& ball)
   }
 
   if (isBelowWorld) {
-    ball.position.y = height - ball.radius;
+    ball.position.y = Constants::worldHeight - ball.radius;
   }
 
   if (isLeftWorld) {
@@ -265,7 +269,7 @@ World::correctBallAgainstWorldBoundaries(Ball& ball)
   }
 
   if (isRightWorld) {
-    ball.position.x = width - ball.radius;
+    ball.position.x = Constants::worldWidth - ball.radius;
   }
 }
 
@@ -378,8 +382,10 @@ World::onBallFallDown()
 SDL_Rect
 World::worldToViewCoordinates(Application& app, SDL_FRect units)
 {
-  const auto widthRatio = static_cast<float>(app.surface->w) / width;
-  const auto heightRatio = static_cast<float>(app.surface->h) / height;
+  const auto widthRatio =
+    static_cast<float>(app.surface->w) / Constants::worldWidth;
+  const auto heightRatio =
+    static_cast<float>(app.surface->h) / Constants::worldHeight;
 
   units.x *= widthRatio;
   units.w *= widthRatio;
