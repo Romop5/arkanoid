@@ -54,6 +54,7 @@ public:
   {
     speedup,
     slowdown,
+    change_ball_size,
     size
   };
 
@@ -122,9 +123,12 @@ protected:
 
 protected:
   void setWorldSpeed(float ratio);
+  void setBallSize(float ratio);
 
   //! Event: reinitialize the game
   void onRestart();
+  
+  void onLevelFinished();
 
   //! Event: release ball from paddle if possible
   void onReleaseBall();

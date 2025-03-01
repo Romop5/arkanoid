@@ -36,6 +36,11 @@ World::World()
 void
 World::initializeWorld()
 {
+  // clear queue
+  while (!events.empty()) {
+    events.pop();
+  }
+
   // generate random tiles
   for (int x = 0; x < Constants::maxTilesX; x++) {
     for (int y = 0; y < Constants::maxTilesY - 3; y++) {
@@ -414,9 +419,23 @@ World::setWorldSpeed(float ratio)
 }
 
 void
+World::setBallSize(float ratio)
+{
+  if (ball) {
+    ball->radius *= ratio;
+  }
+}
+
+void
 World::onRestart()
 {
   initializeWorld();
+}
+
+void
+World::onLevelFinished()
+{
+  onRestart();
 }
 
 void
@@ -473,6 +492,11 @@ World::onBallHitTile(EntityID id)
     // destroy it
     tileMap.erase(it);
   }
+
+  if (tileMap.empty())
+  {
+    onLevelFinished();
+  }
 }
 
 void
@@ -506,6 +530,13 @@ World::onPickupPicked(EntityID pickupId)
         setWorldSpeed(1.0);
         events.push(
           Event(std::chrono::seconds(10), [=]() { setWorldSpeed(1.0); }));
+        break;
+      }
+
+      case Pickup::Type::change_ball_size: {
+        setBallSize(0.5);
+        events.push(
+          Event(std::chrono::seconds(10), [=]() { setBallSize(2.0); }));
         break;
       }
     }
