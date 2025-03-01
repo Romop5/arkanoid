@@ -37,9 +37,18 @@ struct Tile
   std::uint8_t lifes = 1;
 };
 
-class Paddle
+enum ControllerKeys
+{
+	move_left = 0,
+	move_right,
+	size
+};
+
+struct Paddle
 {
   SDL_FRect body;
+
+  std::bitset<ControllerKeys::size> keys;
 };
 
 /**
@@ -58,7 +67,11 @@ public:
   void update(std::chrono::microseconds delta);
   void render(Application& app);
 
+public:
+  void onKeyPressed(bool isKeyDown, SDL_Keysym key);
+
 protected:
+  void updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta);
   void updateBallDynamics(Ball& ball, std::chrono::microseconds delta);
   bool collidesBallWithWorldBoundaries(Ball& ball);
   void correctBallAgainstWorldBoundaries(Ball& ball);
@@ -88,6 +101,8 @@ private:
   std::vector<Tile> tileMap;
 
   Ball ball;
+
+  Paddle paddle;
 
   //! FIFO of events
   std::queue<Event> events;

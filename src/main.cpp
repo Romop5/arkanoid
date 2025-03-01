@@ -8,67 +8,6 @@
 #include <functional>
 #include <thread>
 
-// Screen dimension constants
-constexpr int screenWidth = 640;
-constexpr int screenHeight = 480;
-
-void
-createApplication(Application& application,
-                  std::function<void()> renderCallback)
-{
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    throw std::runtime_error(
-      std::format("SDL could not initialize! SDL_Error: %s\n", SDL_GetError()));
-  }
-
-  application.window = utils::make_raii_deleter<SDL_Window>(
-    SDL_CreateWindow("Arkanoid",
-                     SDL_WINDOWPOS_UNDEFINED,
-                     SDL_WINDOWPOS_UNDEFINED,
-                     screenWidth,
-                     screenHeight,
-                     SDL_WINDOW_SHOWN),
-    [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
-
-  utils::throw_if_null(application.window.get(),
-                       "Failed to initialize SDL Window");
-
-  application.renderer = utils::make_raii_deleter<SDL_Renderer>(
-    utils::throw_if_null(SDL_CreateRenderer(application.window.get(), -1, NULL),
-                         "Failed to initialize renderer"),
-    [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
-
-  // Get window surface
-  application.surface =
-    utils::throw_if_null(SDL_GetWindowSurface(application.window.get()),
-                         "Failed to obtain SDL's window surface");
-
-  SDL_Event e;
-  bool quit = false;
-  while (quit == false) {
-    while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT)
-        quit = true;
-      if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-        application.isStopped = !application.isStopped;
-      }
-    }
-
-    const auto frameBeggining = std::chrono::high_resolution_clock::now();
-
-    SDL_SetRenderDrawColor(application.renderer.get(), 0xFF, 0xFF, 0xFF, 0xFF);
-    SDL_RenderClear(application.renderer.get());
-    renderCallback();
-    SDL_RenderPresent(application.renderer.get());
-
-    // FPS lock on circa 60FPS
-    using namespace std::chrono_literals;
-    //std::this_thread::sleep_until(frameBeggining + 16ms);
-  }
-
-  SDL_Quit();
-}
-
 int
 main(int argc, char* args[])
 {
@@ -79,7 +18,7 @@ main(int argc, char* args[])
 
   auto lastFrame = std::chrono::high_resolution_clock::now();
 
-  createApplication(app, [&]() {
+  app.onRenderCallback = [&]() {
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
 
@@ -91,7 +30,14 @@ main(int argc, char* args[])
     lastFrame = std::chrono::high_resolution_clock::now();
 
     world.render(app);
-  });
+  };
 
+  app.onSDLEventCallback = [&](const SDL_Event& event) {
+    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+      world.onKeyPressed(event.type == SDL_KEYDOWN, event.key.keysym);
+    }
+  };
+
+  createApplication(app);
   return 0;
 }

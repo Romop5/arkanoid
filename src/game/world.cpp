@@ -62,10 +62,20 @@ World::initialize()
   }
 
   // initialize ball
-  ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
+  {
+    ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
 
-  // initially: 1unit/second upward
-  ball.speed = { -50, -(height / 3.0) };
+    // initially: 1unit/second upward
+    ball.speed = { -50, -(height / 3.0) };
+  }
+
+  // initialize paddle
+  {
+    paddle.body.w = 100;
+    paddle.body.h = 10;
+    paddle.body.x = (width / 2.0) - (paddle.body.w * 0.5);
+    paddle.body.y = (height - 20) - (paddle.body.h * 0.5);
+  }
 }
 
 void
@@ -85,10 +95,13 @@ World::update(std::chrono::microseconds delta)
   }
 
   Ball ballBackup = ball;
+  Paddle paddleBackup = paddle;
 
   // dry run: simulate movement and detect if any collision could happened on
   // the way
+  updatePaddleDynamics(paddle, delta);
   updateBallDynamics(ball, delta);
+
   bool hasAnyCollision =
     detectBallCollisions(ball, false) || collidesBallWithWorldBoundaries(ball);
 
@@ -96,10 +109,12 @@ World::update(std::chrono::microseconds delta)
   // microstepping
   if (hasAnyCollision) {
     ball = ballBackup;
+    paddle = paddleBackup;
 
     constexpr auto microstepsCount = 3;
     const auto microDelta = delta / microstepsCount;
     for (int i = 0; i < microstepsCount; i++) {
+      updatePaddleDynamics(paddle, microDelta);
       updateBallDynamics(ball, microDelta);
       correctBallAgainstWorldBoundaries(ball);
       detectBallCollisions(ball, true);
@@ -130,6 +145,49 @@ World::render(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
+
+  // render paddle
+  {
+    const auto& c = Color::black;
+    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+
+    SDL_FRect body = paddle.body;
+    const auto rect = worldToViewCoordinates(app, body);
+
+    SDL_RenderFillRect(app.renderer.get(), &rect);
+  }
+}
+
+void
+World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
+{
+  SDL_Log("onKeyPressed: %d", isKeyDown);
+  if (key.sym == SDLK_LEFT) {
+    paddle.keys[ControllerKeys::move_left] = isKeyDown;
+  }
+
+  if (key.sym == SDLK_RIGHT) {
+    paddle.keys[ControllerKeys::move_right] = isKeyDown;
+  }
+}
+
+void
+World::updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta)
+{
+  const auto paddleSpeed = 1000;
+
+  const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
+  const auto movement = paddleSpeed * elapsedSeconds;
+
+  const bool moveLeft = paddle.keys[ControllerKeys::move_left];
+  const bool moveRight = paddle.keys[ControllerKeys::move_right];
+  if (moveLeft)
+    paddle.body.x -= movement;
+  if (moveRight)
+    paddle.body.x += movement;
+
+  // keep within world
+  paddle.body.x = std::clamp(paddle.body.x, 0.0f, width - paddle.body.w);
 }
 
 void
@@ -189,30 +247,40 @@ World::correctBallAgainstWorldBoundaries(Ball& ball)
 bool
 World::detectBallCollisions(Ball& ball, bool reportCollisions)
 {
-  bool invertSpeedX = false, invertSpeedY = false;
   bool hasAnyCollision = false;
   const auto ballBody = ball.getBoundingRect();
-  for (const auto& tile : tileMap) {
-    if (SDL_HasIntersectionF(&ballBody, &tile.body)) {
-      if (!reportCollisions) {
-        return true;
-      }
 
+  std::pair<bool, bool> invertSpeed = { false, false };
+  auto detectBallVsBodyCollision = [&](const SDL_FRect& body) -> bool {
+    if (SDL_HasIntersectionF(&ballBody, &body)) {
       hasAnyCollision = true;
-      events.push([=]() { onBallHitTile(tile.id); });
 
-      // correct speed/position?
-      const auto [invertX, invertY] = resolveBallSpeedCollisionAfter(tile.body);
-      invertSpeedX |= invertX;
-      invertSpeedY |= invertY;
+      invertSpeed = resolveBallSpeedCollisionAfter(body);
+      return true;
+    }
+    return false;
+  };
+
+  for (const auto& tile : tileMap) {
+    if (detectBallVsBodyCollision(tile.body) && reportCollisions) {
+      events.push([=]() { onBallHitTile(tile.id); });
     }
   }
 
-  if (invertSpeedX) {
-    ball.speed.x *= -1.0f;
+  // against paddle
+  {
+    const auto body = paddle.body;
+    bool hasCollision = detectBallVsBodyCollision(body);
   }
-  if (invertSpeedY) {
-    ball.speed.y *= -1.0f;
+
+  if (reportCollisions) {
+    // adjust speed
+    if (invertSpeed.first) {
+      ball.speed.x *= -1.0f;
+    }
+    if (invertSpeed.second) {
+      ball.speed.y *= -1.0f;
+    }
   }
 
   return hasAnyCollision;
@@ -244,6 +312,8 @@ World::resolveBallSpeedCollisionAfter(SDL_FRect rect)
       return { true, true };
     }
   }
+
+  return { false, false };
 }
 
 void
