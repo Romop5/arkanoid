@@ -1,11 +1,13 @@
 #pragma once
 
 #include <SDL.h>
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <cassert>
 #include <chrono>
 #include <queue>
+#include <utility>
 #include <vector>
 
 #include "application.hpp"
@@ -65,6 +67,23 @@ struct Ball
              { b.x + b.w, b.y },       // top-right
              { b.x + b.w, b.y + b.h }, // bottom-right
              { b.x, b.y + b.h } };     // bottom-left
+  }
+
+  SDL_FPoint cornerToClosestBoundaryDistance(SDL_FPoint corner, SDL_FRect rect)
+  {
+    const auto distanceToUpperBoundary = std::abs(corner.y - rect.y);
+    const auto distanceToBottomBoundary =
+      std::abs(corner.y - (rect.y + rect.h));
+
+    const auto distanceToLeftBoundary = std::abs(corner.x - rect.x);
+    const auto distanceToRightBoundary = std::abs(corner.x - (rect.x + rect.w));
+
+    const auto closestX =
+      std::min(distanceToLeftBoundary, distanceToRightBoundary);
+    const auto closestY =
+      std::min(distanceToUpperBoundary, distanceToBottomBoundary);
+
+    return SDL_FPoint(closestX, closestY);
   }
 
   enum class CollisionState
@@ -161,6 +180,7 @@ protected:
   bool collidesBallWithWorldBoundaries(Ball& ball);
   void correctBallAgainstWorldBoundaries(Ball& ball);
   bool detectBallCollisions(Ball& ball, bool reportCollisions);
+  std::pair<bool, bool> resolveBallSpeedCollisionAfter(SDL_FRect rect);
 
 protected:
   //! Event: ball hit tile

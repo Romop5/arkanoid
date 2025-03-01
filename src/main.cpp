@@ -3,9 +3,9 @@
 #include "game/application.hpp"
 #include "game/utils.hpp"
 #include "game/world.hpp"
+#include <chrono>
 #include <format>
 #include <functional>
-#include <chrono>
 #include <thread>
 
 // Screen dimension constants

@@ -183,6 +183,7 @@ World::correctBallAgainstWorldBoundaries(Ball& ball)
 bool
 World::detectBallCollisions(Ball& ball, bool reportCollisions)
 {
+  bool invertSpeedX = false, invertSpeedY = false;
   bool hasAnyCollision = false;
   const auto ballBody = ball.getBoundingRect();
   for (const auto& tile : tileMap) {
@@ -190,16 +191,53 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
       if (!reportCollisions) {
         return true;
       }
+
       hasAnyCollision = true;
       events.push([=]() { onBallHitTile(tile.id); });
 
       // correct speed/position?
-
-
+      const auto [invertX, invertY] = resolveBallSpeedCollisionAfter(tile.body);
+      invertSpeedX |= invertX;
+      invertSpeedY |= invertY;
     }
   }
 
+  if (invertSpeedX) {
+    ball.speed.x *= -1.0f;
+  }
+  if (invertSpeedY) {
+    ball.speed.y *= -1.0f;
+  }
+
   return hasAnyCollision;
+}
+
+std::pair<bool, bool>
+World::resolveBallSpeedCollisionAfter(SDL_FRect rect)
+{
+  const auto state = ball.getCollisionStateForGivenRect(rect);
+
+  switch (state) {
+    case Ball::CollisionState::no_collision:
+      break;
+    case Ball::CollisionState::from_left:
+    case Ball::CollisionState::from_right: {
+      return { true, false };
+      break;
+    }
+    case Ball::CollisionState::from_above:
+    case Ball::CollisionState::from_bottom: {
+      return { false, true };
+      break;
+    }
+    case Ball::CollisionState::left_top_corner:
+    case Ball::CollisionState::right_top_corner:
+    case Ball::CollisionState::left_bottom_corner:
+    case Ball::CollisionState::right_bottom_corner:
+    case Ball::CollisionState::full_inside: {
+      return { true, true };
+    }
+  }
 }
 
 void
@@ -207,11 +245,14 @@ World::onBallHitTile(TileID id)
 {
   SDL_Log("we hit it: %d", id);
 
-  // initialize ball
-  ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
+  /*
+  {
+    // initialize ball
+    ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
 
-  // initially: 1unit/second upward
-  ball.speed = { 0, -(height / 3.0) };
+    // initially: 1unit/second upward
+    ball.speed = { 0, -(height / 3.0) };
+  }*/
 
   auto it = std::find_if(tileMap.begin(), tileMap.end(), [=](const Tile& tile) {
     return tile.id == id;
