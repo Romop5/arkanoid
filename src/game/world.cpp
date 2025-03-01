@@ -63,10 +63,11 @@ World::initializeWorld()
 
   // initialize paddle
   {
-    paddle.body.w = 100;
-    paddle.body.h = 10;
+    paddle.body.w = Constants::paddleWidth;
+    paddle.body.h = Constants::paddleHeight;
     paddle.body.x = (Constants::worldWidth / 2.0) - (paddle.body.w * 0.5);
-    paddle.body.y = (Constants::worldHeight - 20) - (paddle.body.h * 0.5);
+    paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
+                    (paddle.body.h * 0.5);
   }
 
   initializeBall();
@@ -76,11 +77,12 @@ void
 World::initializeBall()
 {
   ball = Ball();
+  ball->radius = Constants::ballRadius;
   ball->position = SDL_FPoint{ paddle.body.x + paddle.body.w * 0.5f,
                                Constants::worldHeight - ball->radius * 2.0f };
 
   // initially: 1unit/second upward
-  ball->speed = { -50, -(Constants::worldHeight / 3.0) };
+  ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
 }
 
 void
