@@ -51,10 +51,16 @@ createApplication(Application& application,
         quit = true;
     }
 
+    const auto frameBeggining = std::chrono::high_resolution_clock::now();
+
     SDL_SetRenderDrawColor(application.renderer.get(), 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderClear(application.renderer.get());
     renderCallback();
     SDL_RenderPresent(application.renderer.get());
+
+    // FPS lock on circa 60FPS
+    using namespace std::chrono_literals;
+    //std::this_thread::sleep_until(frameBeggining + 16ms);
   }
 
   SDL_Quit();
@@ -79,9 +85,6 @@ main(int argc, char* args[])
     lastFrame = std::chrono::high_resolution_clock::now();
 
     world.render(app);
-
-    // FPS lock on circa 60FPS
-    std::this_thread::sleep_until(now+16ms);
   });
 
   return 0;

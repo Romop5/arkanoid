@@ -65,6 +65,13 @@ World::World()
 void
 World::update(std::chrono::microseconds delta)
 {
+  using namespace std::chrono_literals;
+  // slow down the game if FPS fall below 30 frames per second (33ms)
+  // => prevent tunneling when updating movement and detecting collisions
+  if (delta > 34ms) {
+    delta = 34ms;
+  }
+
   // process events
   while (!events.empty()) {
     events.front()();
