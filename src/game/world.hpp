@@ -16,7 +16,6 @@
 #include <optional>
 #include <queue>
 
-using EntityID = unsigned;
 struct Tile
 {
   EntityID id = -1;
@@ -124,23 +123,6 @@ protected:
 protected:
   void setWorldSpeed(float ratio);
   void setBallSize(float ratio);
-
-  //! Event: reinitialize the game
-  void onRestart();
-  
-  void onLevelFinished();
-
-  //! Event: release ball from paddle if possible
-  void onReleaseBall();
-
-  //! Event: ball hit tile
-  void onBallHitTile(EntityID tileId);
-
-  //! Event: ball hit tile
-  void onBallFallDown();
-
-  void onPickupPicked(EntityID pickupId);
-  void onPickupFallDown(EntityID pickupId);
 
   SDL_Rect worldToViewCoordinates(Application&, SDL_FRect units);
 

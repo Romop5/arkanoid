@@ -41,3 +41,5 @@ static constexpr float ballSpeed = 500;
 static constexpr float pickupFallSpeed = 300;
 
 } // namespace
+
+using EntityID = unsigned;
