@@ -188,6 +188,13 @@ World::render(Application& app)
     const auto rect = worldToViewCoordinates(app, entity.body);
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
+
+    const auto tileTexture = app.textures["tile.png"];
+    if (tileTexture) {
+      SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_BLEND);
+      SDL_RenderCopy(app.renderer.get(), tileTexture, NULL, &rect);
+      SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_NONE);
+    }
   }
 
   // render ball
@@ -202,6 +209,7 @@ World::render(Application& app)
     if (ballTexture) {
       SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.renderer.get(), ballTexture, NULL, &rect);
+      SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_NONE);
     } else {
       SDL_RenderFillRect(app.renderer.get(), &rect);
     }
