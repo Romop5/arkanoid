@@ -1,6 +1,8 @@
 #include <chrono>
 #include <format>
 #include <thread>
+#include <SDL_image.h>
+#include <filesystem>
 
 #include "application.hpp"
 #include "constants.hpp"
@@ -38,6 +40,8 @@ createApplication(Application& application)
     utils::throw_if_null(SDL_GetWindowSurface(application.window.get()),
                          "Failed to obtain SDL's window surface");
 
+  application.onInitCallback();
+
   SDL_Event e;
   bool quit = false;
   while (quit == false) {
@@ -66,4 +70,16 @@ createApplication(Application& application)
   }
 
   SDL_Quit();
+}
+
+void
+loadTexture(Application& application, const std::string& name)
+{
+  SDL_Texture* texture =  IMG_LoadTexture(application.renderer.get(), name.c_str());
+
+  utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
+
+  const auto fileName = std::filesystem::path(name).filename().string();
+
+  application.textures[fileName] = texture;
 }

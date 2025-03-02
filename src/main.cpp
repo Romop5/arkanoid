@@ -7,6 +7,7 @@
 #include <format>
 #include <functional>
 #include <thread>
+#include <SDL_image.h>
 
 int
 main(int argc, char* args[])
@@ -18,6 +19,9 @@ main(int argc, char* args[])
 
   auto lastFrame = std::chrono::high_resolution_clock::now();
 
+  app.onInitCallback = [&]() {
+    loadTexture(app, "assets/game_over.png");
+  };
   app.onRenderCallback = [&]() {
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
