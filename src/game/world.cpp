@@ -71,7 +71,7 @@ World::initializeWorld()
   initializePaddle();
   initializeBall();
 
-  isGameOver = false;
+  gameStatus = GameStatus::running;
 
   remainingBalls = 3;
 
@@ -103,7 +103,7 @@ World::initializePaddle()
 void
 World::update(std::chrono::microseconds delta)
 {
-  if (isGameOver) {
+  if (gameStatus != GameStatus::running) {
     return;
   }
 
@@ -236,10 +236,18 @@ World::render(Application& app)
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
 
-  if (isGameOver) {
-    const auto gameOverTexture = app.textures["game_over.png"];
-    SDL_SetTextureBlendMode(gameOverTexture, SDL_BLENDMODE_BLEND);
-    SDL_RenderCopy(app.renderer.get(), gameOverTexture, NULL, NULL);
+  if (gameStatus != GameStatus::running) {
+    std::string textureName;
+    if (gameStatus == GameStatus::game_over) {
+      textureName = "game_over.png";
+    }
+    if (gameStatus == GameStatus::you_won) {
+      textureName = "you_won.png";
+    }
+    const auto overlayTexture = app.textures[textureName];
+    SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_BLEND);
+    SDL_RenderCopy(app.renderer.get(), overlayTexture, NULL, NULL);
+    SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_NONE);
   }
 }
 
@@ -473,7 +481,15 @@ World::onRestart()
 void
 World::onLevelFinished()
 {
-  onRestart();
+  gameStatus = GameStatus::you_won;
+  events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
+}
+
+void
+World::onGameOver()
+{
+  gameStatus = GameStatus::game_over;
+  events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
 }
 
 void
@@ -543,7 +559,7 @@ World::onBallFallDown()
   ball.reset();
 
   if (remainingBalls == 0) {
-    isGameOver = true;
+    onGameOver();
   } else {
     remainingBalls--;
   }
@@ -586,6 +602,13 @@ World::onPickupPicked(EntityID pickupId)
       case Pickup::Type::change_paddle_size: {
         // until restart
         paddle.body.w *= 2;
+        paddle.body.w =
+          std::clamp(paddle.body.w, 0.0f, Constants::worldWidth * 0.99f);
+
+        if (Constants::worldWidth < (paddle.body.x + paddle.body.w)) {
+          paddle.body.x = std::clamp(
+            paddle.body.x, 0.0f, Constants::worldWidth - paddle.body.w);
+        }
         break;
       }
     }

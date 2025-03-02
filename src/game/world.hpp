@@ -16,6 +16,13 @@
 #include <optional>
 #include <queue>
 
+enum GameStatus
+{
+    running,
+    you_won,
+    game_over
+};
+
 using EntityID = unsigned;
 struct Tile
 {
@@ -131,6 +138,7 @@ protected:
   void onRestart();
   
   void onLevelFinished();
+  void onGameOver();
 
   //! Event: release ball from paddle if possible
   void onReleaseBall();
@@ -164,7 +172,7 @@ private:
 
   float speed{ 1.0f };
 
-  bool isGameOver{ false };
+  GameStatus gameStatus{ GameStatus::running};
 
   //! How many balls can player shoot again
   unsigned remainingBalls{ 2 };
