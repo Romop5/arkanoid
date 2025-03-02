@@ -67,15 +67,8 @@ World::initializeWorld()
     }
   }
 
-  // initialize paddle
-  {
-    paddle.body.w = Constants::paddleWidth;
-    paddle.body.h = Constants::paddleHeight;
-    paddle.body.x = (Constants::worldWidth / 2.0) - (paddle.body.w * 0.5);
-    paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
-                    (paddle.body.h * 0.5);
-  }
-
+  // Note: this must come before ball
+  initializePaddle();
   initializeBall();
 
   isGameOver = false;
@@ -95,6 +88,16 @@ World::initializeBall()
 
   // initially: 1unit/second upward
   ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
+}
+
+void
+World::initializePaddle()
+{
+  paddle.body.w = Constants::paddleWidth;
+  paddle.body.h = Constants::paddleHeight;
+  paddle.body.x = (Constants::worldWidth / 2.0) - (paddle.body.w * 0.5);
+  paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
+                  (paddle.body.h * 0.5);
 }
 
 void

@@ -102,6 +102,7 @@ public:
 
   void initializeWorld();
   void initializeBall();
+  void initializePaddle();
 
   void update(std::chrono::microseconds delta);
   void render(Application& app);
