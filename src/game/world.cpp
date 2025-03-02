@@ -117,8 +117,13 @@ World::update(std::chrono::microseconds delta)
   // process events
   while (!events.empty()) {
     if (events.top().deadline < now) {
-      events.top().callback();
+      const auto event = events.top();
       events.pop();
+
+      // Fix: event could possibly destroy all events, including the one that is
+      // being evaluated at the moments
+      event.callback();
+
     } else {
       break;
     }
