@@ -163,4 +163,7 @@ private:
   float speed{ 1.0f };
 
   bool isGameOver{ false };
+
+  //! How many balls can player shoot again
+  unsigned remainingBalls{ 2 };
 };

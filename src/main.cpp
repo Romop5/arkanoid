@@ -37,6 +37,7 @@ main(int argc, char* args[])
 
   app.onInitCallback = [&]() {
     loadTexture(app, "assets/game_over.png");
+    loadTexture(app, "assets/ball.png");
   };
   app.onRenderCallback = [&]() {
     const auto now = std::chrono::high_resolution_clock::now();

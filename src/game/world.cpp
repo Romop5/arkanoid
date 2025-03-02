@@ -79,6 +79,10 @@ World::initializeWorld()
   initializeBall();
 
   isGameOver = false;
+
+  remainingBalls = 3;
+
+  setWorldSpeed(1.0);
 }
 
 void
@@ -191,7 +195,13 @@ World::render(Application& app)
     SDL_FRect ballBody = ball->getBoundingRect();
     const auto rect = worldToViewCoordinates(app, ballBody);
 
-    SDL_RenderFillRect(app.renderer.get(), &rect);
+    const auto ballTexture = app.textures["ball.png"];
+    if (ballTexture) {
+      SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_BLEND);
+      SDL_RenderCopy(app.renderer.get(), ballTexture, NULL, &rect);
+    } else {
+      SDL_RenderFillRect(app.renderer.get(), &rect);
+    }
   }
 
   // render paddle
@@ -216,9 +226,9 @@ World::render(Application& app)
   }
 
   if (isGameOver) {
-    SDL_SetTextureBlendMode(app.textures["game_over.png"], SDL_BLENDMODE_BLEND);
-    SDL_RenderCopy(
-      app.renderer.get(), app.textures["game_over.png"], NULL, NULL);
+    const auto gameOverTexture = app.textures["game_over.png"];
+    SDL_SetTextureBlendMode(gameOverTexture, SDL_BLENDMODE_BLEND);
+    SDL_RenderCopy(app.renderer.get(), gameOverTexture, NULL, NULL);
   }
 }
 
@@ -521,7 +531,11 @@ World::onBallFallDown()
   SDL_Log("onBallFallDown");
   ball.reset();
 
-  isGameOver = true;
+  if (remainingBalls == 0) {
+    isGameOver = true;
+  } else {
+    remainingBalls--;
+  }
 }
 
 void
