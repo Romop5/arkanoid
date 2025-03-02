@@ -161,4 +161,6 @@ private:
   std::priority_queue<Event> events;
 
   float speed{ 1.0f };
+
+  bool isGameOver{ false };
 };

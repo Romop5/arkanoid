@@ -77,6 +77,8 @@ World::initializeWorld()
   }
 
   initializeBall();
+
+  isGameOver = false;
 }
 
 void
@@ -94,6 +96,10 @@ World::initializeBall()
 void
 World::update(std::chrono::microseconds delta)
 {
+  if (isGameOver) {
+    return;
+  }
+
   const auto now = std::chrono::high_resolution_clock::now();
   using namespace std::chrono_literals;
   // slow down the game if FPS fall below 30 frames per second (33ms)
@@ -202,6 +208,12 @@ World::render(Application& app)
     const auto rect = worldToViewCoordinates(app, entity.body);
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
+  }
+
+  if (isGameOver) {
+    SDL_SetTextureBlendMode(app.textures["game_over.png"], SDL_BLENDMODE_BLEND);
+    SDL_RenderCopy(
+      app.renderer.get(), app.textures["game_over.png"], NULL, NULL);
   }
 }
 
@@ -493,8 +505,7 @@ World::onBallHitTile(EntityID id)
     tileMap.erase(it);
   }
 
-  if (tileMap.empty())
-  {
+  if (tileMap.empty()) {
     onLevelFinished();
   }
 }
@@ -504,6 +515,8 @@ World::onBallFallDown()
 {
   SDL_Log("onBallFallDown");
   ball.reset();
+
+  isGameOver = true;
 }
 
 void

@@ -18,6 +18,10 @@ target_sources(arkanoid PRIVATE ${akranoid_sources})
 target_link_libraries(arkanoid PRIVATE game SDL2::SDL2main)
 set_property(TARGET arkanoid PROPERTY CXX_STANDARD 20)
 
+add_custom_command(TARGET arkanoid POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
+)
+
 file(GLOB sandbox_sources "src/sandbox.cpp")
 add_executable(sandbox)
 target_sources(sandbox PRIVATE ${sandbox_sources})
