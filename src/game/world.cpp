@@ -571,6 +571,13 @@ World::onPickupPicked(EntityID pickupId)
           Event(std::chrono::seconds(10), [=]() { setBallSize(2.0); }));
         break;
       }
+
+      case Pickup::Type::change_paddle_size: {
+        paddle.body.w *= 2;
+        events.push(Event(std::chrono::seconds(10),
+                          [=]() { paddle.body.w = Constants::paddleWidth; }));
+        break;
+      }
     }
   }
 

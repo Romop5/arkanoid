@@ -55,6 +55,7 @@ public:
     speedup,
     slowdown,
     change_ball_size,
+    change_paddle_size,
     size
   };
 
