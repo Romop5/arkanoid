@@ -1,8 +1,8 @@
+#include <SDL_image.h>
 #include <chrono>
+#include <filesystem>
 #include <format>
 #include <thread>
-#include <SDL_image.h>
-#include <filesystem>
 
 #include "application.hpp"
 #include "constants.hpp"
@@ -59,7 +59,13 @@ createApplication(Application& application)
 
     const auto frameBeggining = std::chrono::high_resolution_clock::now();
 
-    SDL_SetRenderDrawColor(application.renderer.get(), 0xFF, 0xFF, 0xFF, 0xFF);
+    const auto clearColor = Color::white;
+    SDL_SetRenderDrawColor(application.renderer.get(),
+                           clearColor.r,
+                           clearColor.g,
+                           clearColor.b,
+                           clearColor.a);
+
     SDL_RenderClear(application.renderer.get());
     application.onRenderCallback();
     SDL_RenderPresent(application.renderer.get());
@@ -75,7 +81,8 @@ createApplication(Application& application)
 void
 loadTexture(Application& application, const std::string& name)
 {
-  SDL_Texture* texture =  IMG_LoadTexture(application.renderer.get(), name.c_str());
+  SDL_Texture* texture =
+    IMG_LoadTexture(application.renderer.get(), name.c_str());
 
   utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
 
