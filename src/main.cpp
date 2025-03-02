@@ -3,11 +3,27 @@
 #include "game/application.hpp"
 #include "game/utils.hpp"
 #include "game/world.hpp"
+#include <SDL_image.h>
 #include <chrono>
 #include <format>
 #include <functional>
 #include <thread>
-#include <SDL_image.h>
+
+namespace {
+void
+renderApplicationOverlay(Application& app)
+{
+  // if stopped, add overlay
+  if (app.isStopped) {
+    // temporal gradient of apha for overlay
+    unsigned alpha = 50 + (SDL_GetTicks() / 30) % 20;
+    SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(app.renderer.get(), 255, 255, 255, alpha);
+    SDL_RenderFillRect(app.renderer.get(), NULL);
+    SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_NONE);
+  }
+}
+} // namespace
 
 int
 main(int argc, char* args[])
@@ -34,6 +50,8 @@ main(int argc, char* args[])
     lastFrame = std::chrono::high_resolution_clock::now();
 
     world.render(app);
+
+    renderApplicationOverlay(app);
   };
 
   app.onSDLEventCallback = [&](const SDL_Event& event) {
