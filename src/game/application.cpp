@@ -81,13 +81,29 @@ createApplication(Application& application)
 void
 loadTexture(Application& application, const std::string& name)
 {
+  SDL_Log("Loading texture: %s", name.c_str());
+
   SDL_Texture* texture =
     IMG_LoadTexture(application.renderer.get(), name.c_str());
 
   utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
 
-  const auto fileName =
-    std::filesystem::path(name).stem().string();
+  const auto fileName = std::filesystem::path(name).stem().string();
 
   application.textures[fileName] = texture;
+}
+
+void
+loadAssets(Application& application, const std::string& assetDirectory)
+{
+  for (auto const& dir_entry :
+       std::filesystem::directory_iterator{ assetDirectory }) {
+    if (!dir_entry.is_regular_file()) {
+      continue;
+    }
+
+    if (dir_entry.path().extension() == ".png") {
+      loadTexture(application, dir_entry.path().string());
+    }
+  }
 }

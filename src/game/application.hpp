@@ -36,3 +36,7 @@ createApplication(Application& application);
 
 void
 loadTexture(Application& application, const std::string& name);
+
+
+void
+loadAssets(Application& application, const std::string& assetDirectory);
