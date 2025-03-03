@@ -19,7 +19,7 @@ A terribly simple clone of Arkanoid, done in C++ & SDL2 & Conan & CMake for fun 
 You will need CMake >=3.27 and Conan 1 or Conan 2.
 
 Create build folder with generated 3rd party import scripts
-> conan install .
+> conan install . --settings=build_type=Release -b missing
 
 Go to build:
 > cd build
@@ -27,7 +27,7 @@ Go to build:
 Generate solution:
 > cmake .. -DCMAKE_TOOLCHAIN_FILE="generators/conan_toolchain.cmake"
 
-Open akranoid.sln and compile.
+Open akranoid.sln and compile it as Release.
 
 *Note*: assets are not embededded and must be thus copied toghether with application.
 
