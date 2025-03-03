@@ -23,6 +23,20 @@ renderApplicationOverlay(Application& app)
     SDL_SetRenderDrawColor(app.renderer.get(), 255, 255, 255, alpha);
     SDL_RenderFillRect(app.renderer.get(), NULL);
     SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_NONE);
+
+
+    const auto blackText =
+      app.getTextureForText(std::format("Paused"));
+    const auto textSize = sdl_helper::getsize(blackText);
+
+    const auto ws = app.getWindowSize();
+    SDL_Rect rect;
+    rect.x = (ws.x - textSize.x) / 2;
+    rect.y = (ws.y - textSize.y) / 2;
+    rect.w = textSize.x;
+    rect.h = textSize.y;
+
+    SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
   }
 }
 } // namespace

@@ -180,5 +180,10 @@ Application::TextManager::removeUnused()
     if ((lastUsed + maxUnusedDuration) < now) {
       it = textures.erase(it);
     }
+
+    if (it == textures.end())
+    {
+      break;
+    }
   }
 }

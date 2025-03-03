@@ -1,4 +1,5 @@
 #include "world.hpp"
+#include "sdl_helper.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -28,9 +29,7 @@ frecTorec(SDL_FRect frec) -> SDL_Rect
 
 } // namespace
 
-World::World()
-{
-}
+World::World() {}
 
 void
 World::initializeWorld()
@@ -191,6 +190,15 @@ World::render(Application& app)
 void
 World::renderEntities(Application& app)
 {
+  const auto appSize = app.getWindowSize();
+  SDL_Rect viewport;
+  viewport.x = 10;
+  viewport.y = 50;
+  viewport.w = appSize.x - 20;
+  viewport.h = appSize.y - 50;
+
+  SDL_RenderSetViewport(app.renderer.get(), &viewport);
+
   // render tiles
   const auto tileTexture = app.textures["tile"];
   for (const auto& entity : tileMap) {
@@ -246,14 +254,33 @@ World::renderEntities(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
+
+  SDL_RenderSetViewport(app.renderer.get(), nullptr);
 }
 
 void
 World::renderHUD(Application& app)
 {
+  if (gameStatus == GameStatus::running) {
+    {
+      const auto blackText = app.getTextureForText(std::format("Lifes: {}", remainingBalls));
+      const auto textSize = sdl_helper::getsize(blackText);
+
+      const auto ws = app.getWindowSize();
+      SDL_Rect rect;
+      rect.x = 5;
+      rect.y = 5;
+      rect.w = textSize.x;
+      rect.h = textSize.y;
+
+      SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
+      
+    }
+  }
+
   if (gameStatus != GameStatus::running) {
     std::string textureName;
-   
+
     if (gameStatus == GameStatus::initial_screen) {
       textureName = "arkanoid";
     }
@@ -290,8 +317,8 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
   if (key.sym == SDLK_r && isKeyDown) {
     onRestart();
   }
-  
-   if (key.sym == SDLK_RETURN && isKeyDown) {
+
+  if (key.sym == SDLK_RETURN && isKeyDown) {
     if (gameStatus == GameStatus::initial_screen) {
       onRestart();
     }
@@ -672,10 +699,13 @@ World::onPickupFallDown(EntityID pickupId)
 SDL_Rect
 World::worldToViewCoordinates(Application& app, SDL_FRect units)
 {
+  SDL_Rect viewport;
+  SDL_RenderGetViewport(app.renderer.get(), &viewport);
+
   const auto widthRatio =
-    static_cast<float>(app.surface->w) / Constants::worldWidth;
+    static_cast<float>(viewport.w) / Constants::worldWidth;
   const auto heightRatio =
-    static_cast<float>(app.surface->h) / Constants::worldHeight;
+    static_cast<float>(viewport.h) / Constants::worldHeight;
 
   units.x *= widthRatio;
   units.w *= widthRatio;
