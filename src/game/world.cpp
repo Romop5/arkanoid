@@ -262,8 +262,11 @@ void
 World::renderHUD(Application& app)
 {
   if (gameStatus == GameStatus::running) {
+
+    // render lives
     {
-      const auto blackText = app.getTextureForText(std::format("Lifes: {}", remainingBalls));
+      const auto blackText =
+        app.getTextureForText(std::format("Lives: {}", remainingBalls));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -274,7 +277,22 @@ World::renderHUD(Application& app)
       rect.h = textSize.y;
 
       SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
-      
+    }
+
+    // render score
+    {
+      const auto blackText =
+        app.getTextureForText(std::format("Score: {}", score));
+      const auto textSize = sdl_helper::getsize(blackText);
+
+      const auto ws = app.getWindowSize();
+      SDL_Rect rect;
+      rect.x = ws.x - 5 - textSize.x;
+      rect.y = 5;
+      rect.w = textSize.x;
+      rect.h = textSize.y;
+
+      SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
     }
   }
 
@@ -582,6 +600,8 @@ World::onBallHitTile(EntityID id)
 
     if (it->lifes == 0) {
       willBeDestroyed = true;
+
+      score += Constants::rewardTileDestroyed;
     }
   }
 
@@ -615,6 +635,7 @@ World::onBallFallDown()
   SDL_Log("onBallFallDown");
   ball.reset();
 
+  score -= Constants::penaltyLostBall;
   if (remainingBalls == 0) {
     onGameOver();
   } else {
@@ -633,6 +654,9 @@ World::onPickupPicked(EntityID pickupId)
 
   // process events
   if (it != pickups.end()) {
+
+    score += Constants::rewardPickupPicked;
+
     const auto& pickup = *it;
     switch (pickup.type) {
       case Pickup::Type::speedup: {

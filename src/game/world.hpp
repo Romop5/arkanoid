@@ -180,4 +180,6 @@ private:
 
   //! How many balls can player shoot again
   unsigned remainingBalls{ 2 };
+
+  int score{ 0 };
 };

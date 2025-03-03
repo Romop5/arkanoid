@@ -41,4 +41,8 @@ static constexpr float ballSpeed = 500;
 
 static constexpr float pickupFallSpeed = 300;
 
+static constexpr unsigned penaltyLostBall = 100;
+static constexpr unsigned rewardTileDestroyed = 10;
+static constexpr unsigned rewardPickupPicked = 1;
+
 } // namespace
