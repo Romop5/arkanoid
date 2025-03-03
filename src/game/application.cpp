@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <format>
 #include <thread>
+#include <utility>
 
 #include "application.hpp"
 #include "constants.hpp"
@@ -82,6 +83,9 @@ Application::createApplication()
     // FPS lock on circa 60FPS
     using namespace std::chrono_literals;
     std::this_thread::sleep_until(frameBeggining + 16ms);
+
+    // clean-up text render cache
+    textManager.removeUnused();
   }
 
   SDL_Quit();
@@ -116,6 +120,21 @@ Application::loadAssets(const std::string& assetDirectory)
   }
 }
 
+SDL_Texture*
+Application::getTextureForText(const std::string& textureText)
+{
+  if (!textManager.textures.count(textureText)) {
+    TextManager::TextTexture textTexture;
+
+    textTexture.lastUsed = std::chrono::high_resolution_clock::now();
+    textTexture.texture = createTextureFromText(textureText, Color::black);
+
+    textManager.textures[textureText] = textTexture;
+  }
+
+  return textManager.textures.at(textureText).texture;
+}
+
 //! Adapted from: https://lazyfoo.net/tutorials/SDL/16_true_type_fonts/index.php
 SDL_Texture*
 Application::createTextureFromText(const std::string& textureText,
@@ -146,4 +165,20 @@ SDL_Point
 Application::getWindowSize()
 {
   return SDL_Point(surface->w, surface->h);
+}
+
+void
+Application::TextManager::removeUnused()
+{
+  using namespace std::chrono_literals;
+  const auto maxUnusedDuration = 5s;
+
+  const auto now = std::chrono::high_resolution_clock::now();
+  for (auto it = textures.begin(); it != textures.end(); it++) {
+
+    const auto lastUsed = it->second.lastUsed;
+    if ((lastUsed + maxUnusedDuration) < now) {
+      it = textures.erase(it);
+    }
+  }
 }

@@ -3,31 +3,29 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <functional>
+#include <vector>
 
 #include "utils.hpp"
 
 struct Application
 {
 
-  public:
-  void
-createApplication();
+public:
+  void createApplication();
 
+  void loadTexture(const std::string& name);
 
-void
-loadTexture(const std::string& name);
+  void loadAssets(const std::string& assetDirectory);
 
+  SDL_Texture* getTextureForText(const std::string& textureText);
 
-void
-loadAssets(const std::string& assetDirectory);
+  SDL_Point getWindowSize();
 
+protected:
+  SDL_Texture* createTextureFromText(const std::string& textureText,
+                                     SDL_Color textColor);
 
-SDL_Texture*
-createTextureFromText(const std::string& textureText, SDL_Color textColor);
-
-SDL_Point
-getWindowSize();
-  public:
+public:
   //! Handle to application window
   utils::RaiiOwnership<SDL_Window> window;
 
@@ -51,4 +49,23 @@ getWindowSize();
   std::unordered_map<std::string, SDL_Texture*> textures;
 
   utils::RaiiOwnership<TTF_Font> font;
+
+  //! @brief Shitty manager for text textures (this architecture sucks, but I am
+  //! in hurry atm)
+  struct TextManager
+  {
+    struct TextTexture
+    {
+      std::chrono::high_resolution_clock::time_point lastUsed;
+      SDL_Texture* texture;
+    };
+
+    public:
+    void removeUnused();
+
+    public:
+    std::unordered_map<std::string, TextTexture> textures;
+  };
+
+  TextManager textManager;
 };
