@@ -50,6 +50,7 @@ struct Paddle
 {
   SDL_FRect body;
 
+  //! Current state of keyboard for actions (e.g. is move_left active)
   std::bitset<ControllerKeys::size> keys;
 
   float getCurrentSpeed() const;
@@ -74,6 +75,9 @@ public:
   SDL_Color color = Color::white;
 };
 
+/**
+* @brief Helper: lambda with defined real-time for evaluation
+*/
 struct Event
 {
   using EventCallback = std::function<void()>;
@@ -120,17 +124,15 @@ class World
 public:
   World();
 
+  void update(std::chrono::microseconds delta);
+  void render(Application& app);
+  void onKeyPressed(bool isKeyDown, SDL_Keysym key);
+
+protected:
   void initializeWorld();
   void initializeBall();
   void initializePaddle();
 
-  void update(std::chrono::microseconds delta);
-  void render(Application& app);
-
-public:
-  void onKeyPressed(bool isKeyDown, SDL_Keysym key);
-
-protected:
   void renderEntities(Application& app);
   void renderHUD(Application& app);
 
@@ -145,15 +147,20 @@ protected:
   bool detectBallCollisions(Ball& ball, bool reportCollisions);
   std::pair<bool, bool> resolveBallSpeedCollisionAfter(Ball& ball,
                                                        SDL_FRect rect);
+  //! Spawn a random pickup
+  void spawnRandomPickup(SDL_Point position, SDL_Color color);
 
 protected:
   void setWorldSpeed(float ratio);
   void setBallSize(float ratio);
 
-  //! Event: reinitialize the game
+  //! Internal Event: reinitialize the game
   void onRestart();
-  
+
+  //! Event: When game finishes (all tiles are destroyed)
   void onLevelFinished();
+
+  //! Event: When game is over (all balls are lost)
   void onGameOver();
 
   //! Event: release ball from paddle if possible
@@ -162,10 +169,13 @@ protected:
   //! Event: ball hit tile
   void onBallHitTile(EntityID tileId);
 
-  //! Event: ball hit tile
+  //! Event: ball fall down the world
   void onBallFallDown();
 
+  //! Event: pickup picked by player
   void onPickupPicked(EntityID pickupId);
+
+  //! Event: pickup was not caught by paddle and fall down the world
   void onPickupFallDown(EntityID pickupId);
 
   SDL_Rect worldToViewCoordinates(Application&, SDL_FRect units);
@@ -183,7 +193,7 @@ private:
   //! User's paddle
   Paddle paddle;
 
-  //! FIFO of events
+  //! Event queue, sorted w.r.t. deadline time
   std::priority_queue<Event> events;
 
   GameStatus gameStatus{ GameStatus::initial_screen };

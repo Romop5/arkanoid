@@ -530,6 +530,26 @@ World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
 }
 
 void
+World::spawnRandomPickup(SDL_Point position, SDL_Color color)
+{
+  static unsigned id = 0;
+
+  Pickup pickup;
+  pickup.id = id++;
+
+  // Choose random type
+  pickup.type = static_cast<Pickup::Type>(std::rand() % Pickup::Type::size);
+
+  pickup.body.w = Constants::tileWidth * 0.5;
+  pickup.body.h = Constants::tileHeight * 0.5;
+  pickup.body.x = position.x + pickup.body.w / 2.0;
+  pickup.body.y = position.y + pickup.body.w / 2.0;
+
+  pickup.color = color;
+  pickups.push_back(pickup);
+}
+
+void
 World::setWorldSpeed(float ratio)
 {
   gameState.speed = ratio;
@@ -580,15 +600,6 @@ World::onBallHitTile(EntityID id)
 {
   SDL_Log("onBallHitTile: %d", id);
 
-  /*
-  {
-    // initialize ball
-    ball.position = SDL_FPoint{ width / 2.0f, height - ball.radius * 2.0f };
-
-    // initially: 1unit/second upward
-    ball.speed = { 0, -(height / 3.0) };
-  }*/
-
   auto it = std::find_if(tileMap.begin(), tileMap.end(), [=](const Tile& tile) {
     return tile.id == id;
   });
@@ -601,23 +612,14 @@ World::onBallHitTile(EntityID id)
     if (it->lifes == 0) {
       willBeDestroyed = true;
 
-      score += Constants::rewardTileDestroyed;
+      gameState.score += Constants::rewardTileDestroyed;
     }
   }
 
   // when tile was destroyed and with some lower chance, generate special pickup
   if (willBeDestroyed && std::rand() % 5 == 0) {
-    static unsigned id = 0;
-    Pickup pickup;
-    pickup.id = id++;
-    pickup.type = static_cast<Pickup::Type>(std::rand() % Pickup::Type::size);
-    pickup.body = it->body;
-    pickup.color = it->color;
-
-    pickup.body.w *= 0.5;
-    pickup.body.h *= 0.5;
-
-    pickups.push_back(pickup);
+    SDL_Point spawnPoint = { it->body.x, it->body.y };
+    spawnRandomPickup(spawnPoint, it->color);
   }
   if (willBeDestroyed) {
     // destroy it
