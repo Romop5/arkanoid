@@ -30,7 +30,6 @@ frecTorec(SDL_FRect frec) -> SDL_Rect
 
 World::World()
 {
-  initializeWorld();
 }
 
 void
@@ -238,6 +237,11 @@ World::render(Application& app)
 
   if (gameStatus != GameStatus::running) {
     std::string textureName;
+   
+    if (gameStatus == GameStatus::initial_screen) {
+      textureName = "arkanoid";
+    }
+
     if (gameStatus == GameStatus::game_over) {
       textureName = "game_over";
     }
@@ -269,6 +273,12 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
 
   if (key.sym == SDLK_r && isKeyDown) {
     onRestart();
+  }
+  
+   if (key.sym == SDLK_RETURN && isKeyDown) {
+    if (gameStatus == GameStatus::initial_screen) {
+      onRestart();
+    }
   }
 }
 

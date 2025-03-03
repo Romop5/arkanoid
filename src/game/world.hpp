@@ -18,6 +18,7 @@
 
 enum GameStatus
 {
+    initial_screen,
     running,
     you_won,
     game_over
@@ -172,7 +173,7 @@ private:
 
   float speed{ 1.0f };
 
-  GameStatus gameStatus{ GameStatus::running};
+  GameStatus gameStatus{ GameStatus::initial_screen};
 
   //! How many balls can player shoot again
   unsigned remainingBalls{ 2 };
