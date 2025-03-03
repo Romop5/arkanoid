@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "utils.hpp"
+#include "text_manager.hpp"
 
 struct Application
 {
@@ -57,27 +58,6 @@ public:
   bool isStopped = { false };
 
   std::unordered_map<std::string, SDL_Texture*> textures;
-
-  //! @brief Shitty manager for text textures (this architecture sucks, but I am
-  //! in hurry atm)
-  struct TextManager
-  {
-    struct TextTexture
-    {
-      std::chrono::high_resolution_clock::time_point lastUsed;
-      SDL_Texture* texture;
-    };
-
-  public:
-    void initialize();
-
-    void removeUnused();
-
-  public:
-    utils::RaiiOwnership<TTF_Font> font;
-
-    std::unordered_map<std::string, TextTexture> textures;
-  };
 
   TextManager textManager;
 };

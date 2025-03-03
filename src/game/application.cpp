@@ -90,17 +90,13 @@ SDL_Texture*
 Application::getCachedTextureForText(const std::string& textureText)
 {
   // create and cache texture for given text
-  if (!textManager.textures.count(textureText)) {
-    TextManager::TextTexture textTexture;
-
-    textTexture.lastUsed = std::chrono::high_resolution_clock::now();
-    textTexture.texture =
-      createTextureFromText(textManager.font.get(), textureText, Color::black);
-
-    textManager.textures[textureText] = textTexture;
+  if (!textManager.hasTexture(textureText)) {
+    textManager.addTexture(
+      textureText,
+      createTextureFromText(textManager.getFont(), textureText, Color::black));
   }
 
-  return textManager.textures.at(textureText).texture;
+  return textManager.getTexture(textureText);
 }
 
 void
@@ -172,39 +168,8 @@ Application::createTextureFromText(TTF_Font* font,
 SDL_Point
 Application::getWindowSize()
 {
-  SDL_Surface* surface = utils::throw_if_null(SDL_GetWindowSurface(window.get()),
-                                 "Failed to obtain SDL's window surface");
+  SDL_Surface* surface =
+    utils::throw_if_null(SDL_GetWindowSurface(window.get()),
+                         "Failed to obtain SDL's window surface");
   return SDL_Point(surface->w, surface->h);
-}
-
-void
-Application::TextManager::initialize()
-{
-  const auto fontPath = std::filesystem::absolute("assets/font.ttf").string();
-  assert(std::filesystem::exists(fontPath));
-
-  font = utils::make_raii_deleter<TTF_Font>(
-    utils::throw_if_null(TTF_OpenFont(fontPath.c_str(), 28),
-                         std::string("Failed to open TTF font: ") + fontPath),
-    [](TTF_Font* font) { TTF_CloseFont(font); });
-}
-
-void
-Application::TextManager::removeUnused()
-{
-  using namespace std::chrono_literals;
-  const auto maxUnusedDuration = 5s;
-
-  const auto now = std::chrono::high_resolution_clock::now();
-  for (auto it = textures.begin(); it != textures.end(); it++) {
-
-    const auto lastUsed = it->second.lastUsed;
-    if ((lastUsed + maxUnusedDuration) < now) {
-      it = textures.erase(it);
-    }
-
-    if (it == textures.end()) {
-      break;
-    }
-  }
 }
