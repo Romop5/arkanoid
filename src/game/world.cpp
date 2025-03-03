@@ -181,6 +181,7 @@ void
 World::render(Application& app)
 {
   // render tiles
+  const auto tileTexture = app.textures["tile"];
   for (const auto& entity : tileMap) {
     const auto& c = entity.color;
     SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
@@ -189,7 +190,6 @@ World::render(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
 
-    const auto tileTexture = app.textures["tile"];
     if (tileTexture) {
       SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.renderer.get(), tileTexture, NULL, &rect);
