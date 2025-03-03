@@ -119,6 +119,9 @@ public:
   void onKeyPressed(bool isKeyDown, SDL_Keysym key);
 
 protected:
+  void renderEntities(Application& app);
+  void renderHUD(Application& app);
+
   void updatePickups(std::chrono::microseconds delta);
   void updatePaddleDynamics(Paddle& paddle, std::chrono::microseconds delta);
   void updateBallDynamics(Ball& ball, std::chrono::microseconds delta);

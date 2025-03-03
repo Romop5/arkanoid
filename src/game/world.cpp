@@ -184,6 +184,13 @@ World::update(std::chrono::microseconds delta)
 void
 World::render(Application& app)
 {
+  renderEntities(app);
+  renderHUD(app);
+}
+
+void
+World::renderEntities(Application& app)
+{
   // render tiles
   const auto tileTexture = app.textures["tile"];
   for (const auto& entity : tileMap) {
@@ -239,7 +246,11 @@ World::render(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
   }
+}
 
+void
+World::renderHUD(Application& app)
+{
   if (gameStatus != GameStatus::running) {
     std::string textureName;
    
