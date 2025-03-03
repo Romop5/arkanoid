@@ -75,7 +75,7 @@ World::initializeWorld()
 
   gameStatus = GameStatus::running;
 
-  remainingBalls = 3;
+  gameState.remainingBalls = 3;
 
   setWorldSpeed(1.0);
 }
@@ -113,7 +113,7 @@ World::update(std::chrono::microseconds delta)
     delta = 34ms;
   }
 
-  delta *= speed;
+  delta *= gameState.speed;
 
   // process events
   while (!events.empty()) {
@@ -265,8 +265,8 @@ World::renderHUD(Application& app)
 
     // render lives
     {
-      const auto blackText =
-        app.getTextureForText(std::format("Lives: {}", remainingBalls));
+      const auto blackText = app.getTextureForText(
+        std::format("Lives: {}", gameState.remainingBalls));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -282,7 +282,7 @@ World::renderHUD(Application& app)
     // render score
     {
       const auto blackText =
-        app.getTextureForText(std::format("Score: {}", score));
+        app.getTextureForText(std::format("Score: {}", gameState.score));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -532,7 +532,7 @@ World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
 void
 World::setWorldSpeed(float ratio)
 {
-  speed = ratio;
+  gameState.speed = ratio;
 }
 
 void
@@ -635,11 +635,11 @@ World::onBallFallDown()
   SDL_Log("onBallFallDown");
   ball.reset();
 
-  score -= Constants::penaltyLostBall;
-  if (remainingBalls == 0) {
+  gameState.score -= Constants::penaltyLostBall;
+  if (gameState.remainingBalls == 0) {
     onGameOver();
   } else {
-    remainingBalls--;
+    gameState.remainingBalls--;
   }
 }
 
@@ -655,7 +655,7 @@ World::onPickupPicked(EntityID pickupId)
   // process events
   if (it != pickups.end()) {
 
-    score += Constants::rewardPickupPicked;
+    gameState.score += Constants::rewardPickupPicked;
 
     const auto& pickup = *it;
     switch (pickup.type) {

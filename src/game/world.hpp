@@ -18,10 +18,10 @@
 
 enum GameStatus
 {
-    initial_screen,
-    running,
-    you_won,
-    game_over
+  initial_screen,
+  running,
+  you_won,
+  game_over
 };
 
 using EntityID = unsigned;
@@ -100,6 +100,18 @@ struct Event
   }
 };
 
+struct GameState
+{
+  //! Game speed rate (for all moving objects)
+  float speed{ 1.0f };
+
+  //! How many balls can player shoot again
+  unsigned remainingBalls{ 2 };
+
+  //! Current score
+  int score{ 0 };
+};
+
 /**
  * @brief Logical definition of the world and its entities
  */
@@ -174,12 +186,8 @@ private:
   //! FIFO of events
   std::priority_queue<Event> events;
 
-  float speed{ 1.0f };
+  GameStatus gameStatus{ GameStatus::initial_screen };
 
-  GameStatus gameStatus{ GameStatus::initial_screen};
-
-  //! How many balls can player shoot again
-  unsigned remainingBalls{ 2 };
-
-  int score{ 0 };
+  //! Defines parameters of the level 
+  GameState gameState;
 };
