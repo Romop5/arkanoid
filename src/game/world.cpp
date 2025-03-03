@@ -86,7 +86,7 @@ World::initializeBall()
   m_ball = Ball();
   m_ball->radius = Constants::ballRadius;
   m_ball->position = SDL_FPoint{ m_paddle.body.x + m_paddle.body.w * 0.5f,
-                               m_paddle.body.y - m_ball->radius - 1.0f };
+                                 m_paddle.body.y - m_ball->radius - 1.0f };
 
   // initially: 1unit/second upward
   m_ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
@@ -99,7 +99,7 @@ World::initializePaddle()
   m_paddle.body.h = Constants::paddleHeight;
   m_paddle.body.x = (Constants::worldWidth / 2.0) - (m_paddle.body.w * 0.5);
   m_paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
-                  (m_paddle.body.h * 0.5);
+                    (m_paddle.body.h * 0.5);
 }
 
 void
@@ -117,15 +117,14 @@ World::update(std::chrono::microseconds delta)
 
   // process events
   while (!m_events.empty()) {
-    if (m_events.top().deadline < now) {
+    if (m_events.top().getDeadline() < now) {
       SDL_Log("Popping event");
       const auto event = m_events.top();
       m_events.pop();
 
       // Fix: event could possibly destroy all events, including the one that is
       // being evaluated at the moments
-      event.callback();
-
+      event.getCallback()();
     } else {
       break;
     }
@@ -281,8 +280,8 @@ World::renderHUD(Application& app)
 
     // render score
     {
-      const auto blackText =
-        app.getCachedTextureForText(std::format("Score: {}", m_gameState.score));
+      const auto blackText = app.getCachedTextureForText(
+        std::format("Score: {}", m_gameState.score));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -296,7 +295,7 @@ World::renderHUD(Application& app)
     }
   }
 
-  if (m_gameStatus != GameStatus::running) {
+  else {
     std::string textureName;
 
     if (m_gameStatus == GameStatus::initial_screen) {
@@ -600,9 +599,9 @@ World::onBallHitTile(EntityID id)
 {
   SDL_Log("onBallHitTile: %d", id);
 
-  auto it = std::find_if(m_tileMap.begin(), m_tileMap.end(), [=](const Tile& tile) {
-    return tile.id == id;
-  });
+  auto it = std::find_if(m_tileMap.begin(),
+                         m_tileMap.end(),
+                         [=](const Tile& tile) { return tile.id == id; });
 
   bool willBeDestroyed = false;
   // delete tile if is dead
@@ -740,21 +739,4 @@ World::worldToViewCoordinates(Application& app, SDL_FRect units)
   units.h *= heightRatio;
 
   return frecTorec(units);
-}
-
-float
-Paddle::getCurrentSpeed() const
-{
-  const auto movement = Constants::paddleSpeed;
-
-  const bool moveLeft = keys[ControllerKeys::move_left];
-  const bool moveRight = keys[ControllerKeys::move_right];
-
-  float speed = 0.0f;
-  if (moveLeft)
-    speed -= movement;
-  if (moveRight)
-    speed += movement;
-
-  return speed;
 }
