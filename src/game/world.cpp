@@ -35,13 +35,13 @@ void
 World::initializeWorld()
 {
   // clear queue
-  SDL_Log("Clearing event queue with n = %ull events", events.size());
-  while (!events.empty()) {
-    events.pop();
+  SDL_Log("Clearing event queue with n = %ull events", m_events.size());
+  while (!m_events.empty()) {
+    m_events.pop();
   }
 
-  tileMap.clear();
-  pickups.clear();
+  m_tileMap.clear();
+  m_pickups.clear();
 
   // generate random tiles
   for (int x = 0; x < Constants::maxTilesX; x++) {
@@ -65,7 +65,7 @@ World::initializeWorld()
       tile.body = body;
       tile.color = getRandomStandardColor();
 
-      tileMap.push_back(tile);
+      m_tileMap.push_back(tile);
     }
   }
 
@@ -73,9 +73,9 @@ World::initializeWorld()
   initializePaddle();
   initializeBall();
 
-  gameStatus = GameStatus::running;
+  m_gameStatus = GameStatus::running;
 
-  gameState.remainingBalls = 3;
+  m_gameState.remainingBalls = 3;
 
   setWorldSpeed(1.0);
 }
@@ -83,23 +83,23 @@ World::initializeWorld()
 void
 World::initializeBall()
 {
-  ball = Ball();
-  ball->radius = Constants::ballRadius;
-  ball->position = SDL_FPoint{ paddle.body.x + paddle.body.w * 0.5f,
-                               paddle.body.y - ball->radius - 1.0f };
+  m_ball = Ball();
+  m_ball->radius = Constants::ballRadius;
+  m_ball->position = SDL_FPoint{ m_paddle.body.x + m_paddle.body.w * 0.5f,
+                               m_paddle.body.y - m_ball->radius - 1.0f };
 
   // initially: 1unit/second upward
-  ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
+  m_ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
 }
 
 void
 World::initializePaddle()
 {
-  paddle.body.w = Constants::paddleWidth;
-  paddle.body.h = Constants::paddleHeight;
-  paddle.body.x = (Constants::worldWidth / 2.0) - (paddle.body.w * 0.5);
-  paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
-                  (paddle.body.h * 0.5);
+  m_paddle.body.w = Constants::paddleWidth;
+  m_paddle.body.h = Constants::paddleHeight;
+  m_paddle.body.x = (Constants::worldWidth / 2.0) - (m_paddle.body.w * 0.5);
+  m_paddle.body.y = (Constants::worldHeight - Constants::paddleHeight * 1.2) -
+                  (m_paddle.body.h * 0.5);
 }
 
 void
@@ -113,14 +113,14 @@ World::update(std::chrono::microseconds delta)
     delta = 34ms;
   }
 
-  delta *= gameState.speed;
+  delta *= m_gameState.speed;
 
   // process events
-  while (!events.empty()) {
-    if (events.top().deadline < now) {
+  while (!m_events.empty()) {
+    if (m_events.top().deadline < now) {
       SDL_Log("Popping event");
-      const auto event = events.top();
-      events.pop();
+      const auto event = m_events.top();
+      m_events.pop();
 
       // Fix: event could possibly destroy all events, including the one that is
       // being evaluated at the moments
@@ -131,42 +131,42 @@ World::update(std::chrono::microseconds delta)
     }
   }
 
-  if (gameStatus != GameStatus::running) {
+  if (m_gameStatus != GameStatus::running) {
     return;
   }
 
-  if (ball && hasBallFallenDown(*ball)) {
-    events.push(Event([=]() { onBallFallDown(); }));
+  if (m_ball && hasBallFallenDown(*m_ball)) {
+    m_events.push(Event([=]() { onBallFallDown(); }));
   }
 
   updatePickups(delta);
 
-  Paddle paddleBackup = paddle;
+  Paddle paddleBackup = m_paddle;
 
   // dry run: simulate movement and detect if any collision could happened on
   // the way
-  updatePaddleDynamics(paddle, delta);
+  updatePaddleDynamics(m_paddle, delta);
 
-  if (ball.has_value()) {
-    Ball ballBackup = *ball;
-    updateBallDynamics(*ball, delta);
+  if (m_ball.has_value()) {
+    Ball ballBackup = *m_ball;
+    updateBallDynamics(*m_ball, delta);
 
-    bool hasAnyCollision = detectBallCollisions(*ball, false) ||
-                           collidesBallWithWorldBoundaries(*ball);
+    bool hasAnyCollision = detectBallCollisions(*m_ball, false) ||
+                           collidesBallWithWorldBoundaries(*m_ball);
 
     // if ball has a potential collision, revert the state to initial and do
     // microstepping
     if (hasAnyCollision) {
-      ball = ballBackup;
-      paddle = paddleBackup;
+      m_ball = ballBackup;
+      m_paddle = paddleBackup;
 
       constexpr auto microstepsCount = 10;
       const auto microDelta = delta / microstepsCount;
       for (int i = 0; i < microstepsCount; i++) {
-        updatePaddleDynamics(paddle, microDelta);
-        updateBallDynamics(*ball, microDelta);
-        correctBallAgainstWorldBoundaries(*ball);
-        detectBallCollisions(*ball, true);
+        updatePaddleDynamics(m_paddle, microDelta);
+        updateBallDynamics(*m_ball, microDelta);
+        correctBallAgainstWorldBoundaries(*m_ball);
+        detectBallCollisions(*m_ball, true);
       }
     }
   }
@@ -174,8 +174,8 @@ World::update(std::chrono::microseconds delta)
   // update pickups and detect collisions
   // note: pickups are moving slow, we don't need to the maskarade above
 
-  for (const auto& pickup : pickups) {
-    if (SDL_HasIntersectionF(&pickup.body, &paddle.body)) {
+  for (const auto& pickup : m_pickups) {
+    if (SDL_HasIntersectionF(&pickup.body, &m_paddle.body)) {
     }
   }
 }
@@ -197,76 +197,76 @@ World::renderEntities(Application& app)
   viewport.w = appSize.x - 20;
   viewport.h = appSize.y - 50;
 
-  SDL_RenderSetViewport(app.renderer.get(), &viewport);
+  SDL_RenderSetViewport(app.getRenderer(), &viewport);
 
   // render tiles
-  const auto tileTexture = app.textures["tile"];
-  for (const auto& entity : tileMap) {
+  const auto tileTexture = app.getTexture("tile");
+  for (const auto& entity : m_tileMap) {
     const auto& c = entity.color;
-    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+    SDL_SetRenderDrawColor(app.getRenderer(), c.r, c.g, c.b, c.a);
 
     const auto rect = worldToViewCoordinates(app, entity.body);
 
-    SDL_RenderFillRect(app.renderer.get(), &rect);
+    SDL_RenderFillRect(app.getRenderer(), &rect);
 
     if (tileTexture) {
       SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_BLEND);
-      SDL_RenderCopy(app.renderer.get(), tileTexture, NULL, &rect);
+      SDL_RenderCopy(app.getRenderer(), tileTexture, NULL, &rect);
       SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_NONE);
     }
   }
 
   // render ball
-  if (ball) {
+  if (m_ball) {
     const auto& c = Color::black;
-    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+    SDL_SetRenderDrawColor(app.getRenderer(), c.r, c.g, c.b, c.a);
 
-    SDL_FRect ballBody = ball->getBoundingRect();
+    SDL_FRect ballBody = m_ball->getBoundingRect();
     const auto rect = worldToViewCoordinates(app, ballBody);
 
-    const auto ballTexture = app.textures["ball"];
+    const auto ballTexture = app.getTexture("ball");
     if (ballTexture) {
       SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_BLEND);
-      SDL_RenderCopy(app.renderer.get(), ballTexture, NULL, &rect);
+      SDL_RenderCopy(app.getRenderer(), ballTexture, NULL, &rect);
       SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_NONE);
     } else {
-      SDL_RenderFillRect(app.renderer.get(), &rect);
+      SDL_RenderFillRect(app.getRenderer(), &rect);
     }
   }
 
   // render paddle
   {
     const auto& c = Color::black;
-    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+    SDL_SetRenderDrawColor(app.getRenderer(), c.r, c.g, c.b, c.a);
 
-    SDL_FRect body = paddle.body;
+    SDL_FRect body = m_paddle.body;
     const auto rect = worldToViewCoordinates(app, body);
 
-    SDL_RenderFillRect(app.renderer.get(), &rect);
+    SDL_RenderFillRect(app.getRenderer(), &rect);
   }
 
   // render pickups
-  for (const auto& entity : pickups) {
+  for (const auto& entity : m_pickups) {
     const auto& c = entity.color;
-    SDL_SetRenderDrawColor(app.renderer.get(), c.r, c.g, c.b, c.a);
+    SDL_SetRenderDrawColor(app.getRenderer(), c.r, c.g, c.b, c.a);
 
     const auto rect = worldToViewCoordinates(app, entity.body);
 
-    SDL_RenderFillRect(app.renderer.get(), &rect);
+    SDL_RenderFillRect(app.getRenderer(), &rect);
   }
 
-  SDL_RenderSetViewport(app.renderer.get(), nullptr);
+  SDL_RenderSetViewport(app.getRenderer(), nullptr);
 }
 
 void
 World::renderHUD(Application& app)
 {
-  if (gameStatus == GameStatus::running) {
+  if (m_gameStatus == GameStatus::running) {
 
     // render lives
     {
       const auto blackText = app.getCachedTextureForText(
-        std::format("Lives: {}", gameState.remainingBalls));
+        std::format("Lives: {}", m_gameState.remainingBalls));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -276,13 +276,13 @@ World::renderHUD(Application& app)
       rect.w = textSize.x;
       rect.h = textSize.y;
 
-      SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
+      SDL_RenderCopy(app.getRenderer(), blackText, NULL, &rect);
     }
 
     // render score
     {
       const auto blackText =
-        app.getCachedTextureForText(std::format("Score: {}", gameState.score));
+        app.getCachedTextureForText(std::format("Score: {}", m_gameState.score));
       const auto textSize = sdl_helper::getsize(blackText);
 
       const auto ws = app.getWindowSize();
@@ -292,26 +292,26 @@ World::renderHUD(Application& app)
       rect.w = textSize.x;
       rect.h = textSize.y;
 
-      SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
+      SDL_RenderCopy(app.getRenderer(), blackText, NULL, &rect);
     }
   }
 
-  if (gameStatus != GameStatus::running) {
+  if (m_gameStatus != GameStatus::running) {
     std::string textureName;
 
-    if (gameStatus == GameStatus::initial_screen) {
+    if (m_gameStatus == GameStatus::initial_screen) {
       textureName = "arkanoid";
     }
 
-    if (gameStatus == GameStatus::game_over) {
+    if (m_gameStatus == GameStatus::game_over) {
       textureName = "game_over";
     }
-    if (gameStatus == GameStatus::you_won) {
+    if (m_gameStatus == GameStatus::you_won) {
       textureName = "you_won";
     }
-    const auto overlayTexture = app.textures[textureName];
+    const auto overlayTexture = app.getTexture(textureName);
     SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_BLEND);
-    SDL_RenderCopy(app.renderer.get(), overlayTexture, NULL, NULL);
+    SDL_RenderCopy(app.getRenderer(), overlayTexture, NULL, NULL);
     SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_NONE);
   }
 }
@@ -321,11 +321,11 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
 {
   SDL_Log("onKeyPressed: %d", isKeyDown);
   if (key.sym == SDLK_LEFT) {
-    paddle.keys[ControllerKeys::move_left] = isKeyDown;
+    m_paddle.keys[ControllerKeys::move_left] = isKeyDown;
   }
 
   if (key.sym == SDLK_RIGHT) {
-    paddle.keys[ControllerKeys::move_right] = isKeyDown;
+    m_paddle.keys[ControllerKeys::move_right] = isKeyDown;
   }
 
   if (key.sym == SDLK_SPACE && isKeyDown) {
@@ -337,7 +337,7 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
   }
 
   if (key.sym == SDLK_RETURN && isKeyDown) {
-    if (gameStatus == GameStatus::initial_screen) {
+    if (m_gameStatus == GameStatus::initial_screen) {
       onRestart();
     }
   }
@@ -348,7 +348,7 @@ World::updatePickups(std::chrono::microseconds delta)
 {
   const auto elapsedSeconds = delta.count() / static_cast<float>(1000'000.0);
 
-  for (auto it = pickups.begin(); it != pickups.end(); it++) {
+  for (auto it = m_pickups.begin(); it != m_pickups.end(); it++) {
     bool shouldErase = false;
     auto& pickup = *it;
     const auto initialBody = pickup.body;
@@ -358,7 +358,7 @@ World::updatePickups(std::chrono::microseconds delta)
 
     // detect falling out of world
     if (pickup.body.y > Constants::worldHeight - pickup.body.h * 0.5) {
-      events.push(Event([=]() { onPickupFallDown(pickup.id); }));
+      m_events.push(Event([=]() { onPickupFallDown(pickup.id); }));
       continue;
     }
 
@@ -366,8 +366,8 @@ World::updatePickups(std::chrono::microseconds delta)
     SDL_FRect pickupConvexHull = initialBody;
     pickupConvexHull.h = pickup.body.y - initialBody.y + initialBody.h;
 
-    if (SDL_HasIntersectionF(&pickupConvexHull, &paddle.body)) {
-      events.push(Event([=]() { onPickupPicked(pickup.id); }));
+    if (SDL_HasIntersectionF(&pickupConvexHull, &m_paddle.body)) {
+      m_events.push(Event([=]() { onPickupPicked(pickup.id); }));
     }
   }
 }
@@ -467,9 +467,9 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     return false;
   };
 
-  for (const auto& tile : tileMap) {
+  for (const auto& tile : m_tileMap) {
     if (detectBallVsBodyCollision(tile.body) && reportCollisions) {
-      events.push(Event([=]() { onBallHitTile(tile.id); }));
+      m_events.push(Event([=]() { onBallHitTile(tile.id); }));
     }
   }
 
@@ -477,7 +477,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
 
   bool hasPaddleCollision = false;
   {
-    const auto body = paddle.body;
+    const auto body = m_paddle.body;
     hasPaddleCollision = detectBallVsBodyCollision(body);
   }
 
@@ -491,7 +491,7 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     }
 
     if (hasPaddleCollision) {
-      const auto speed = paddle.getCurrentSpeed();
+      const auto speed = m_paddle.getCurrentSpeed();
       ball.speed.x += speed * 0.3;
     }
   }
@@ -546,20 +546,20 @@ World::spawnRandomPickup(SDL_Point position, SDL_Color color)
   pickup.body.y = position.y + pickup.body.w / 2.0;
 
   pickup.color = color;
-  pickups.push_back(pickup);
+  m_pickups.push_back(pickup);
 }
 
 void
 World::setWorldSpeed(float ratio)
 {
-  gameState.speed = ratio;
+  m_gameState.speed = ratio;
 }
 
 void
 World::setBallSize(float ratio)
 {
-  if (ball) {
-    ball->radius *= ratio;
+  if (m_ball) {
+    m_ball->radius *= ratio;
   }
 }
 
@@ -574,23 +574,23 @@ void
 World::onLevelFinished()
 {
   SDL_Log("onLevelFinished");
-  gameStatus = GameStatus::you_won;
-  events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
+  m_gameStatus = GameStatus::you_won;
+  m_events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
 }
 
 void
 World::onGameOver()
 {
   SDL_Log("onGameOver");
-  gameStatus = GameStatus::game_over;
-  events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
+  m_gameStatus = GameStatus::game_over;
+  m_events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
 }
 
 void
 World::onReleaseBall()
 {
   SDL_Log("onReleaseBall");
-  if (!ball.has_value()) {
+  if (!m_ball.has_value()) {
     initializeBall();
   }
 }
@@ -600,19 +600,19 @@ World::onBallHitTile(EntityID id)
 {
   SDL_Log("onBallHitTile: %d", id);
 
-  auto it = std::find_if(tileMap.begin(), tileMap.end(), [=](const Tile& tile) {
+  auto it = std::find_if(m_tileMap.begin(), m_tileMap.end(), [=](const Tile& tile) {
     return tile.id == id;
   });
 
   bool willBeDestroyed = false;
   // delete tile if is dead
-  if (it != tileMap.end()) {
+  if (it != m_tileMap.end()) {
     it->lifes--;
 
     if (it->lifes == 0) {
       willBeDestroyed = true;
 
-      gameState.score += Constants::rewardTileDestroyed;
+      m_gameState.score += Constants::rewardTileDestroyed;
     }
   }
 
@@ -623,10 +623,10 @@ World::onBallHitTile(EntityID id)
   }
   if (willBeDestroyed) {
     // destroy it
-    tileMap.erase(it);
+    m_tileMap.erase(it);
   }
 
-  if (tileMap.empty()) {
+  if (m_tileMap.empty()) {
     onLevelFinished();
   }
 }
@@ -635,13 +635,13 @@ void
 World::onBallFallDown()
 {
   SDL_Log("onBallFallDown");
-  ball.reset();
+  m_ball.reset();
 
-  gameState.score -= Constants::penaltyLostBall;
-  if (gameState.remainingBalls == 0) {
+  m_gameState.score -= Constants::penaltyLostBall;
+  if (m_gameState.remainingBalls == 0) {
     onGameOver();
   } else {
-    gameState.remainingBalls--;
+    m_gameState.remainingBalls--;
   }
 }
 
@@ -650,27 +650,27 @@ World::onPickupPicked(EntityID pickupId)
 {
   SDL_Log("onPickupPicked: %d", pickupId);
   auto it =
-    std::find_if(pickups.begin(), pickups.end(), [=](const Pickup& entity) {
+    std::find_if(m_pickups.begin(), m_pickups.end(), [=](const Pickup& entity) {
       return entity.id == pickupId;
     });
 
   // process events
-  if (it != pickups.end()) {
+  if (it != m_pickups.end()) {
 
-    gameState.score += Constants::rewardPickupPicked;
+    m_gameState.score += Constants::rewardPickupPicked;
 
     const auto& pickup = *it;
     switch (pickup.type) {
       case Pickup::Type::speedup: {
         setWorldSpeed(2.0);
-        events.push(
+        m_events.push(
           Event(std::chrono::seconds(10), [=]() { setWorldSpeed(1.0); }));
         break;
       }
 
       case Pickup::Type::slowdown: {
         setWorldSpeed(1.0);
-        events.push(
+        m_events.push(
           Event(std::chrono::seconds(10), [=]() { setWorldSpeed(1.0); }));
         break;
       }
@@ -678,24 +678,24 @@ World::onPickupPicked(EntityID pickupId)
       case Pickup::Type::change_ball_size: {
 
         constexpr float minimalRadius = 5.0;
-        if (ball && ball->radius < minimalRadius)
+        if (m_ball && m_ball->radius < minimalRadius)
           break;
 
         setBallSize(0.5);
-        events.push(
+        m_events.push(
           Event(std::chrono::seconds(10), [=]() { setBallSize(2.0); }));
         break;
       }
 
       case Pickup::Type::change_paddle_size: {
         // until restart
-        paddle.body.w *= 2;
-        paddle.body.w =
-          std::clamp(paddle.body.w, 0.0f, Constants::worldWidth * 0.99f);
+        m_paddle.body.w *= 2;
+        m_paddle.body.w =
+          std::clamp(m_paddle.body.w, 0.0f, Constants::worldWidth * 0.99f);
 
-        if (Constants::worldWidth < (paddle.body.x + paddle.body.w)) {
-          paddle.body.x = std::clamp(
-            paddle.body.x, 0.0f, Constants::worldWidth - paddle.body.w);
+        if (Constants::worldWidth < (m_paddle.body.x + m_paddle.body.w)) {
+          m_paddle.body.x = std::clamp(
+            m_paddle.body.x, 0.0f, Constants::worldWidth - m_paddle.body.w);
         }
         break;
       }
@@ -703,8 +703,8 @@ World::onPickupPicked(EntityID pickupId)
   }
 
   // delete it
-  if (it != pickups.end()) {
-    pickups.erase(it);
+  if (it != m_pickups.end()) {
+    m_pickups.erase(it);
   }
 }
 
@@ -713,12 +713,12 @@ World::onPickupFallDown(EntityID pickupId)
 {
   SDL_Log("onPickupFallDown: %d", pickupId);
   auto it =
-    std::find_if(pickups.begin(), pickups.end(), [=](const Pickup& entity) {
+    std::find_if(m_pickups.begin(), m_pickups.end(), [=](const Pickup& entity) {
       return entity.id == pickupId;
     });
   // delete it
-  if (it != pickups.end()) {
-    pickups.erase(it);
+  if (it != m_pickups.end()) {
+    m_pickups.erase(it);
   }
 }
 
@@ -726,7 +726,7 @@ SDL_Rect
 World::worldToViewCoordinates(Application& app, SDL_FRect units)
 {
   SDL_Rect viewport;
-  SDL_RenderGetViewport(app.renderer.get(), &viewport);
+  SDL_RenderGetViewport(app.getRenderer(), &viewport);
 
   const auto widthRatio =
     static_cast<float>(viewport.w) / Constants::worldWidth;

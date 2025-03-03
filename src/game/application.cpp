@@ -16,7 +16,7 @@ Application::createApplication()
 
   initializeWindowAndRenderer();
 
-  textManager.initialize();
+  m_textManager.initialize();
 
   onInitCallback();
 }
@@ -31,7 +31,7 @@ Application::runLoop()
       if (e.type == SDL_QUIT)
         quit = true;
       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-        isStopped = !isStopped;
+        m_isStopped = !m_isStopped;
       }
 
       if (onSDLEventCallback) {
@@ -43,18 +43,18 @@ Application::runLoop()
 
     const auto clearColor = Color::white;
     SDL_SetRenderDrawColor(
-      renderer.get(), clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+      m_renderer.get(), clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 
-    SDL_RenderClear(renderer.get());
+    SDL_RenderClear(m_renderer.get());
     onRenderCallback();
-    SDL_RenderPresent(renderer.get());
+    SDL_RenderPresent(m_renderer.get());
 
     // FPS lock on circa 60FPS
     using namespace std::chrono_literals;
     std::this_thread::sleep_until(frameBeggining + 16ms);
 
     // clean-up text render cache
-    textManager.removeUnused();
+    m_textManager.removeUnused();
   }
 }
 
@@ -64,11 +64,11 @@ Application::loadTexture(const std::string& name)
   SDL_Log("Loading texture: %s", name.c_str());
 
   SDL_Texture* texture =
-    utils::throw_if_null(IMG_LoadTexture(renderer.get(), name.c_str()),
+    utils::throw_if_null(IMG_LoadTexture(m_renderer.get(), name.c_str()),
                          std::string("Failed to load texture: ") + name);
 
   const auto fileName = std::filesystem::path(name).stem().string();
-  textures[fileName] = texture;
+  m_textures[fileName] = texture;
 }
 
 void
@@ -90,13 +90,19 @@ SDL_Texture*
 Application::getCachedTextureForText(const std::string& textureText)
 {
   // create and cache texture for given text
-  if (!textManager.hasTexture(textureText)) {
-    textManager.addTexture(
+  if (!m_textManager.hasTexture(textureText)) {
+    m_textManager.addTexture(
       textureText,
-      createTextureFromText(textManager.getFont(), textureText, Color::black));
+      createTextureFromText(m_textManager.getFont(), textureText, Color::black));
   }
 
-  return textManager.getTexture(textureText);
+  return m_textManager.getTexture(textureText);
+}
+
+bool
+Application::isStopped() const
+{
+  return m_isStopped;
 }
 
 void
@@ -109,7 +115,7 @@ Application::initializeSDL()
 
   // since now SDL is initialized, we need to free it once application is
   // destroyed
-  sdlContext = utils::make_raii_action([]() { SDL_Quit(); });
+  m_sdlContext = utils::make_raii_action([]() { SDL_Quit(); });
 
   if (TTF_Init() < 0) {
     throw std::runtime_error(std::format(
@@ -120,7 +126,7 @@ Application::initializeSDL()
 void
 Application::initializeWindowAndRenderer()
 {
-  window = utils::make_raii_deleter<SDL_Window>(
+  m_window = utils::make_raii_deleter<SDL_Window>(
     SDL_CreateWindow("Arkanoid",
                      SDL_WINDOWPOS_UNDEFINED,
                      SDL_WINDOWPOS_UNDEFINED,
@@ -129,12 +135,12 @@ Application::initializeWindowAndRenderer()
                      SDL_WINDOW_SHOWN),
     [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
 
-  utils::throw_if_null(window.get(), "Failed to initialize SDL Window");
+  utils::throw_if_null(m_window.get(), "Failed to initialize SDL Window");
 
-  renderer = utils::make_raii_deleter<SDL_Renderer>(
+  m_renderer = utils::make_raii_deleter<SDL_Renderer>(
     utils::throw_if_null(
       SDL_CreateRenderer(
-        window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+        m_window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
       "Failed to initialize renderer"),
     [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
 }
@@ -159,7 +165,7 @@ Application::createTextureFromText(TTF_Font* font,
 
   // Create texture from surface pixels
   texture = utils::throw_if_null(
-    SDL_CreateTextureFromSurface(renderer.get(), textSurface.get()),
+    SDL_CreateTextureFromSurface(m_renderer.get(), textSurface.get()),
     "Unable to create texture from rendered text!");
 
   return texture;
@@ -169,7 +175,20 @@ SDL_Point
 Application::getWindowSize()
 {
   SDL_Surface* surface =
-    utils::throw_if_null(SDL_GetWindowSurface(window.get()),
+    utils::throw_if_null(SDL_GetWindowSurface(m_window.get()),
                          "Failed to obtain SDL's window surface");
   return SDL_Point(surface->w, surface->h);
+}
+
+SDL_Texture*
+Application::getTexture(const std::string& name)
+{
+  assert(m_textures.count(name));
+  return m_textures[name];
+}
+
+SDL_Renderer*
+Application::getRenderer() const
+{
+  return utils::throw_if_null(m_renderer.get(), "renderer is nullptr");
 }

@@ -16,13 +16,13 @@ void
 renderApplicationOverlay(Application& app)
 {
   // if stopped, add overlay
-  if (app.isStopped) {
+  if (app.isStopped()) {
     // temporal gradient of apha for overlay
     unsigned alpha = 50 + (SDL_GetTicks() / 30) % 20;
-    SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(app.renderer.get(), 255, 255, 255, alpha);
-    SDL_RenderFillRect(app.renderer.get(), NULL);
-    SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawBlendMode(app.getRenderer(), SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(app.getRenderer(), 255, 255, 255, alpha);
+    SDL_RenderFillRect(app.getRenderer(), NULL);
+    SDL_SetRenderDrawBlendMode(app.getRenderer(), SDL_BLENDMODE_NONE);
 
     const auto blackText = app.getCachedTextureForText(std::format("Paused"));
     const auto textSize = sdl_helper::getsize(blackText);
@@ -34,7 +34,7 @@ renderApplicationOverlay(Application& app)
     rect.w = textSize.x;
     rect.h = textSize.y;
 
-    SDL_RenderCopy(app.renderer.get(), blackText, NULL, &rect);
+    SDL_RenderCopy(app.getRenderer(), blackText, NULL, &rect);
   }
 }
 } // namespace
@@ -54,7 +54,7 @@ main(int argc, char* args[])
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
 
-    if (!app.isStopped) {
+    if (!app.isStopped()) {
       world.update(
         std::chrono::duration_cast<std::chrono::microseconds>(delta));
     }

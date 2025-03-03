@@ -182,22 +182,22 @@ protected:
 
 private:
   //! Static tiles
-  std::vector<Tile> tileMap;
+  std::vector<Tile> m_tileMap;
 
   //! Dynamic objects: pickups
-  std::vector<Pickup> pickups;
+  std::vector<Pickup> m_pickups;
 
   //! Dynamic object: moving ball
-  std::optional<Ball> ball;
+  std::optional<Ball> m_ball;
 
   //! User's paddle
-  Paddle paddle;
+  Paddle m_paddle;
 
   //! Event queue, sorted w.r.t. deadline time
-  std::priority_queue<Event> events;
+  std::priority_queue<Event> m_events;
 
-  GameStatus gameStatus{ GameStatus::initial_screen };
+  GameStatus m_gameStatus{ GameStatus::initial_screen };
 
   //! Defines parameters of the level 
-  GameState gameState;
+  GameState m_gameState;
 };

@@ -5,8 +5,8 @@
 #include <functional>
 #include <vector>
 
-#include "utils.hpp"
 #include "text_manager.hpp"
+#include "utils.hpp"
 
 struct Application
 {
@@ -18,21 +18,17 @@ public:
   void loadTexture(const std::string& name);
   void loadAssets(const std::string& assetDirectory);
 
-  //! Given text to be render, internally obtain a texture with rendered text
-  SDL_Texture* getCachedTextureForText(const std::string& textureText);
+  SDL_Renderer* getRenderer() const;
 
   //! Helper: get pixel size of app's window
   SDL_Point getWindowSize();
 
-public:
-  //! Handle to SDL (to deinitialize on destructor)
-  utils::RaiiOwnership<void> sdlContext;
+  SDL_Texture* getTexture(const std::string& name);
 
-  //! Handle to application window
-  utils::RaiiOwnership<SDL_Window> window;
+  //! Given text to be render, internally obtain a texture with rendered text
+  SDL_Texture* getCachedTextureForText(const std::string& textureText);
 
-  //! Handle to SDL's 2D renderer
-  utils::RaiiOwnership<SDL_Renderer> renderer;
+  bool isStopped() const;
 
 public:
   //! Called when event arises in SDL polling mechanism
@@ -53,11 +49,20 @@ protected:
                                      const std::string& textureText,
                                      SDL_Color textColor);
 
-public:
+private:
+  //! Handle to SDL (to deinitialize on destructor)
+  utils::RaiiOwnership<void> m_sdlContext;
+
+  //! Handle to application window
+  utils::RaiiOwnership<SDL_Window> m_window;
+
+  //! Handle to SDL's 2D renderer
+  utils::RaiiOwnership<SDL_Renderer> m_renderer;
+
+  TextManager m_textManager;
+
   //! Is application (render) running?
-  bool isStopped = { false };
+  bool m_isStopped = { false };
 
-  std::unordered_map<std::string, SDL_Texture*> textures;
-
-  TextManager textManager;
+  std::unordered_map<std::string, SDL_Texture*> m_textures;
 };
