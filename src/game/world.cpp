@@ -84,7 +84,7 @@ World::initializeBall()
   ball = Ball();
   ball->radius = Constants::ballRadius;
   ball->position = SDL_FPoint{ paddle.body.x + paddle.body.w * 0.5f,
-                               Constants::worldHeight - ball->radius * 2.0f };
+                               paddle.body.y - ball->radius - 1.0f };
 
   // initially: 1unit/second upward
   ball->speed = { ((std::rand() % 100) - 50.0f), -(Constants::ballSpeed) };
@@ -593,6 +593,11 @@ World::onPickupPicked(EntityID pickupId)
       }
 
       case Pickup::Type::change_ball_size: {
+
+        constexpr float minimalRadius = 5.0;
+        if (ball && ball->radius < minimalRadius)
+          break;
+
         setBallSize(0.5);
         events.push(
           Event(std::chrono::seconds(10), [=]() { setBallSize(2.0); }));
