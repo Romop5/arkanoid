@@ -4,7 +4,7 @@
 
 namespace sdl_helper
 {
-    static SDL_Point getsize(SDL_Texture *texture) {
+    static SDL_Point getTextureSize(SDL_Texture *texture) {
         SDL_Point size;
         SDL_QueryTexture(texture, NULL, NULL, &size.x, &size.y);
         return size;

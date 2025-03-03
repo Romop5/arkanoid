@@ -242,7 +242,7 @@ World::renderHUD(Application& app)
     {
       const auto blackText = app.getCachedTextureForText(
         std::format("Lives: {}", m_gameState.remainingBalls));
-      const auto textSize = sdl_helper::getsize(blackText);
+      const auto textSize = sdl_helper::getTextureSize(blackText);
 
       const auto ws = app.getWindowSize();
       SDL_Rect rect;
@@ -258,7 +258,7 @@ World::renderHUD(Application& app)
     {
       const auto blackText = app.getCachedTextureForText(
         std::format("Score: {}", m_gameState.score));
-      const auto textSize = sdl_helper::getsize(blackText);
+      const auto textSize = sdl_helper::getTextureSize(blackText);
 
       const auto ws = app.getWindowSize();
       SDL_Rect rect;
