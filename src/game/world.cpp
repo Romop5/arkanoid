@@ -171,7 +171,7 @@ World::renderEntities(Application& app)
   SDL_Rect viewport;
   viewport.x = Constants::worldRenderingHorizontalMargin;
   viewport.y = Constants::worldRenderingTopMargin;
-  viewport.w = appSize.x - Constants::worldRenderingHorizontalMargin*2;
+  viewport.w = appSize.x - Constants::worldRenderingHorizontalMargin * 2;
   viewport.h = appSize.y - Constants::worldRenderingTopMargin;
 
   SDL_RenderSetViewport(app.getRenderer(), &viewport);
@@ -189,7 +189,6 @@ World::renderEntities(Application& app)
     if (tileTexture) {
       SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.getRenderer(), tileTexture, NULL, &rect);
-      SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_NONE);
     }
   }
 
@@ -205,7 +204,6 @@ World::renderEntities(Application& app)
     if (ballTexture) {
       SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.getRenderer(), ballTexture, NULL, &rect);
-      SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_NONE);
     } else {
       SDL_RenderFillRect(app.getRenderer(), &rect);
     }
@@ -274,22 +272,23 @@ World::renderHUD(Application& app)
   }
 
   else {
-    std::string textureName;
+    std::string textureName = [](GameStatus status) -> std::string {
+      switch (status) {
+        case GameStatus::initial_screen:
+          return "arkanoid";
+        case GameStatus::game_over:
+          return "game_over";
+        case GameStatus::you_won:
+          return "you_won";
+        default:
+          assert(false);
+          return "";
+      }
+    }(m_gameStatus);
 
-    if (m_gameStatus == GameStatus::initial_screen) {
-      textureName = "arkanoid";
-    }
-
-    if (m_gameStatus == GameStatus::game_over) {
-      textureName = "game_over";
-    }
-    if (m_gameStatus == GameStatus::you_won) {
-      textureName = "you_won";
-    }
     const auto overlayTexture = app.getTexture(textureName);
     SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_BLEND);
     SDL_RenderCopy(app.getRenderer(), overlayTexture, NULL, NULL);
-    SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_NONE);
   }
 }
 
@@ -310,13 +309,12 @@ World::onKeyPressed(bool isKeyDown, SDL_Keysym key)
   }
 
   if (key.sym == SDLK_r && isKeyDown) {
-    onRestart();
+    restartLevel();
   }
 
-  if (key.sym == SDLK_RETURN && isKeyDown) {
-    if (m_gameStatus == GameStatus::initial_screen) {
-      onRestart();
-    }
+  if (key.sym == SDLK_RETURN && isKeyDown &&
+      m_gameStatus == GameStatus::initial_screen) {
+    restartLevel();
   }
 }
 
@@ -567,9 +565,9 @@ World::setBallSize(float ratio)
 }
 
 void
-World::onRestart()
+World::restartLevel()
 {
-  SDL_Log("onRestart");
+  SDL_Log("restartLevel");
   initializeWorld();
 }
 
@@ -578,7 +576,7 @@ World::onLevelFinished()
 {
   SDL_Log("onLevelFinished");
   m_gameStatus = GameStatus::you_won;
-  m_events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
+  m_events.push(Event(std::chrono::seconds(10), [=]() { restartLevel(); }));
 }
 
 void
@@ -586,7 +584,7 @@ World::onGameOver()
 {
   SDL_Log("onGameOver");
   m_gameStatus = GameStatus::game_over;
-  m_events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
+  m_events.push(Event(std::chrono::seconds(10), [=]() { restartLevel(); }));
 }
 
 void

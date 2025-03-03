@@ -81,7 +81,7 @@ protected:
   void setBallSize(float ratio);
 
   //! Internal Event: reinitialize the game
-  void onRestart();
+  void restartLevel();
 
   //! Event: When game finishes (all tiles are destroyed)
   void onLevelFinished();
