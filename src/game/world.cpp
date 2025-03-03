@@ -29,13 +29,13 @@ frecTorec(SDL_FRect frec) -> SDL_Rect
 
 } // namespace
 
-World::World() {}
-
 void
 World::initializeWorld()
 {
   // clear queue
-  SDL_Log("Clearing event queue with n = %ull events", m_events.size());
+  SDL_Log(
+    std::format("Clearing event queue with n = {} events", m_events.size())
+      .c_str());
   while (!m_events.empty()) {
     m_events.pop();
   }
@@ -46,26 +46,7 @@ World::initializeWorld()
   // generate random tiles
   for (int x = 0; x < Constants::maxTilesX; x++) {
     for (int y = 0; y < Constants::maxTilesY - 3; y++) {
-
-      bool skipTile = std::rand() % 2;
-      if (skipTile) {
-        continue;
-      }
-
-      SDL_FRect body;
-      body.x = x * Constants::tileWidth;
-      body.y = y * Constants::tileHeight;
-      body.w = Constants::tileWidth;
-      body.h = Constants::tileHeight;
-
-      Tile tile;
-
-      static unsigned id = 0;
-      tile.id = id++;
-      tile.body = body;
-      tile.color = getRandomStandardColor();
-
-      m_tileMap.push_back(tile);
+      spawnRandomTile(x, y);
     }
   }
 
@@ -74,10 +55,7 @@ World::initializeWorld()
   initializeBall();
 
   m_gameStatus = GameStatus::running;
-
-  m_gameState.remainingBalls = 3;
-
-  setWorldSpeed(1.0);
+  m_gameState = GameState();
 }
 
 void
@@ -463,7 +441,9 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     if (SDL_HasIntersectionF(&ballBody, &body)) {
       hasAnyCollision = true;
 
-      invertSpeed = resolveBallSpeedCollisionAfter(ball, body);
+      const auto localInvertSpeed = resolveBallSpeedCollisionAfter(ball, body);
+      invertSpeed.first |= localInvertSpeed.first;
+      invertSpeed.second |= localInvertSpeed.second;
       return true;
     }
     return false;
@@ -475,13 +455,8 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
     }
   }
 
-  // against paddle
-
-  bool hasPaddleCollision = false;
-  {
-    const auto body = m_paddle.body;
-    hasPaddleCollision = detectBallVsBodyCollision(body);
-  }
+  // detect collision against paddle
+  bool hasPaddleCollision = detectBallVsBodyCollision(m_paddle.body);
 
   if (reportCollisions) {
     // adjust speed
@@ -492,6 +467,8 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
       ball.speed.y *= -1.0f;
     }
 
+    // if ball collided with paddle and paddle was moving, apply additional side
+    // speed
     if (hasPaddleCollision) {
       const auto speed = m_paddle.getCurrentSpeed();
       ball.speed.x += speed * 0.3;
@@ -529,6 +506,30 @@ World::resolveBallSpeedCollisionAfter(Ball& ball, SDL_FRect rect)
   }
 
   return { false, false };
+}
+
+void
+World::spawnRandomTile(unsigned x, unsigned y)
+{
+  bool skipTile = std::rand() % 2;
+  if (skipTile) {
+    return;
+  }
+
+  SDL_FRect body;
+  body.x = x * Constants::tileWidth;
+  body.y = y * Constants::tileHeight;
+  body.w = Constants::tileWidth;
+  body.h = Constants::tileHeight;
+
+  Tile tile;
+
+  static unsigned id = 0;
+  tile.id = id++;
+  tile.body = body;
+  tile.color = getRandomStandardColor();
+
+  m_tileMap.push_back(tile);
 }
 
 void
@@ -718,6 +719,7 @@ World::onPickupFallDown(EntityID pickupId)
     std::find_if(m_pickups.begin(), m_pickups.end(), [=](const Pickup& entity) {
       return entity.id == pickupId;
     });
+
   // delete it
   if (it != m_pickups.end()) {
     m_pickups.erase(it);

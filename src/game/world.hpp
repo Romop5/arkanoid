@@ -44,8 +44,6 @@ struct GameState
 class World
 {
 public:
-  World();
-
   void update(std::chrono::microseconds delta);
   void render(Application& app);
   void onKeyPressed(bool isKeyDown, SDL_Keysym key);
@@ -71,6 +69,10 @@ protected:
   //! Returns pair <invertSpeedX, invertSpeedY> to adjust speed after collision
   std::pair<bool, bool> resolveBallSpeedCollisionAfter(Ball& ball,
                                                        SDL_FRect rect);
+
+  //! Spawn a random tile at position
+  void spawnRandomTile(unsigned x, unsigned y);
+
   //! Spawn a random pickup
   void spawnRandomPickup(SDL_Point position, SDL_Color color);
 
