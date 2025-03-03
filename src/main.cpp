@@ -24,9 +24,7 @@ renderApplicationOverlay(Application& app)
     SDL_RenderFillRect(app.renderer.get(), NULL);
     SDL_SetRenderDrawBlendMode(app.renderer.get(), SDL_BLENDMODE_NONE);
 
-
-    const auto blackText =
-      app.getTextureForText(std::format("Paused"));
+    const auto blackText = app.getCachedTextureForText(std::format("Paused"));
     const auto textSize = sdl_helper::getsize(blackText);
 
     const auto ws = app.getWindowSize();
@@ -76,6 +74,7 @@ main(int argc, char* args[])
 
   try {
     app.createApplication();
+    app.runLoop();
   } catch (const std::runtime_error& error) {
     SDL_ShowSimpleMessageBox(
       SDL_MESSAGEBOX_ERROR, "Fatal Error", error.what(), nullptr);

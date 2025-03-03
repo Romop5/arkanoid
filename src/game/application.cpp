@@ -12,49 +12,18 @@
 void
 Application::createApplication()
 {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    throw std::runtime_error(
-      std::format("SDL could not initialize! SDL_Error: %s\n", SDL_GetError()));
-  }
+  initializeSDL();
 
-  if (TTF_Init() < 0) {
-    throw std::runtime_error(std::format(
-      "Failed to initialize SDL's TTF module: %s\n", TTF_GetError()));
-  }
+  initializeWindowAndRenderer();
 
-  window = utils::make_raii_deleter<SDL_Window>(
-    SDL_CreateWindow("Arkanoid",
-                     SDL_WINDOWPOS_UNDEFINED,
-                     SDL_WINDOWPOS_UNDEFINED,
-                     Constants::screenWidth,
-                     Constants::screenHeight,
-                     SDL_WINDOW_SHOWN),
-    [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
-
-  utils::throw_if_null(window.get(), "Failed to initialize SDL Window");
-
-  renderer = utils::make_raii_deleter<SDL_Renderer>(
-    utils::throw_if_null(
-      SDL_CreateRenderer(
-        window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
-      "Failed to initialize renderer"),
-    [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
-
-  // Get window surface
-  surface = utils::throw_if_null(SDL_GetWindowSurface(window.get()),
-                                 "Failed to obtain SDL's window surface");
-
-  const auto fontPath = std::filesystem::absolute("assets/font.ttf").string();
-  assert(std::filesystem::exists(fontPath));
-
-  // Credits: https://int10h.org/oldschool-pc-fonts/fontlist/font?ibm_vga_8x16
-  font = utils::make_raii_deleter<TTF_Font>(
-    utils::throw_if_null(TTF_OpenFont(fontPath.c_str(), 28),
-                         std::string("Failed to open TTF font: ") + fontPath),
-    [](TTF_Font* font) { TTF_CloseFont(font); });
+  textManager.initialize();
 
   onInitCallback();
+}
 
+void
+Application::runLoop()
+{
   SDL_Event e;
   bool quit = false;
   while (quit == false) {
@@ -87,8 +56,6 @@ Application::createApplication()
     // clean-up text render cache
     textManager.removeUnused();
   }
-
-  SDL_Quit();
 }
 
 void
@@ -96,12 +63,11 @@ Application::loadTexture(const std::string& name)
 {
   SDL_Log("Loading texture: %s", name.c_str());
 
-  SDL_Texture* texture = IMG_LoadTexture(renderer.get(), name.c_str());
-
-  utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
+  SDL_Texture* texture =
+    utils::throw_if_null(IMG_LoadTexture(renderer.get(), name.c_str()),
+                         std::string("Failed to load texture: ") + name);
 
   const auto fileName = std::filesystem::path(name).stem().string();
-
   textures[fileName] = texture;
 }
 
@@ -121,13 +87,15 @@ Application::loadAssets(const std::string& assetDirectory)
 }
 
 SDL_Texture*
-Application::getTextureForText(const std::string& textureText)
+Application::getCachedTextureForText(const std::string& textureText)
 {
+  // create and cache texture for given text
   if (!textManager.textures.count(textureText)) {
     TextManager::TextTexture textTexture;
 
     textTexture.lastUsed = std::chrono::high_resolution_clock::now();
-    textTexture.texture = createTextureFromText(textureText, Color::black);
+    textTexture.texture =
+      createTextureFromText(textManager.font.get(), textureText, Color::black);
 
     textManager.textures[textureText] = textTexture;
   }
@@ -135,13 +103,53 @@ Application::getTextureForText(const std::string& textureText)
   return textManager.textures.at(textureText).texture;
 }
 
+void
+Application::initializeSDL()
+{
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    throw std::runtime_error(
+      std::format("SDL could not initialize! SDL_Error: %s\n", SDL_GetError()));
+  }
+
+  // since now SDL is initialized, we need to free it once application is
+  // destroyed
+  sdlContext = utils::make_raii_action([]() { SDL_Quit(); });
+
+  if (TTF_Init() < 0) {
+    throw std::runtime_error(std::format(
+      "Failed to initialize SDL's TTF module: %s\n", TTF_GetError()));
+  }
+}
+
+void
+Application::initializeWindowAndRenderer()
+{
+  window = utils::make_raii_deleter<SDL_Window>(
+    SDL_CreateWindow("Arkanoid",
+                     SDL_WINDOWPOS_UNDEFINED,
+                     SDL_WINDOWPOS_UNDEFINED,
+                     Constants::screenWidth,
+                     Constants::screenHeight,
+                     SDL_WINDOW_SHOWN),
+    [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
+
+  utils::throw_if_null(window.get(), "Failed to initialize SDL Window");
+
+  renderer = utils::make_raii_deleter<SDL_Renderer>(
+    utils::throw_if_null(
+      SDL_CreateRenderer(
+        window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+      "Failed to initialize renderer"),
+    [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
+}
+
 //! Adapted from: https://lazyfoo.net/tutorials/SDL/16_true_type_fonts/index.php
 SDL_Texture*
-Application::createTextureFromText(const std::string& textureText,
+Application::createTextureFromText(TTF_Font* font,
+                                   const std::string& textureText,
                                    SDL_Color textColor)
 {
-
-  assert(font.get() != nullptr);
+  assert(font != nullptr);
 
   SDL_Texture* texture = nullptr;
 
@@ -149,7 +157,7 @@ Application::createTextureFromText(const std::string& textureText,
   utils::RaiiOwnership<SDL_Surface> textSurface =
     utils::make_raii_deleter<SDL_Surface>(
       utils::throw_if_null(
-        TTF_RenderText_Solid(font.get(), textureText.c_str(), textColor),
+        TTF_RenderText_Solid(font, textureText.c_str(), textColor),
         "Unable to render text surface!"),
       [](SDL_Surface* surface) { SDL_FreeSurface(surface); });
 
@@ -164,7 +172,21 @@ Application::createTextureFromText(const std::string& textureText,
 SDL_Point
 Application::getWindowSize()
 {
+  SDL_Surface* surface = utils::throw_if_null(SDL_GetWindowSurface(window.get()),
+                                 "Failed to obtain SDL's window surface");
   return SDL_Point(surface->w, surface->h);
+}
+
+void
+Application::TextManager::initialize()
+{
+  const auto fontPath = std::filesystem::absolute("assets/font.ttf").string();
+  assert(std::filesystem::exists(fontPath));
+
+  font = utils::make_raii_deleter<TTF_Font>(
+    utils::throw_if_null(TTF_OpenFont(fontPath.c_str(), 28),
+                         std::string("Failed to open TTF font: ") + fontPath),
+    [](TTF_Font* font) { TTF_CloseFont(font); });
 }
 
 void
@@ -181,8 +203,7 @@ Application::TextManager::removeUnused()
       it = textures.erase(it);
     }
 
-    if (it == textures.end())
-    {
+    if (it == textures.end()) {
       break;
     }
   }

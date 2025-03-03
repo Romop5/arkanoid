@@ -12,28 +12,28 @@ struct Application
 
 public:
   void createApplication();
+  void runLoop();
 
   void loadTexture(const std::string& name);
-
   void loadAssets(const std::string& assetDirectory);
 
-  SDL_Texture* getTextureForText(const std::string& textureText);
+  //! Given text to be render, internally obtain a texture with rendered text
+  SDL_Texture* getCachedTextureForText(const std::string& textureText);
 
+  //! Helper: get pixel size of app's window
   SDL_Point getWindowSize();
 
-protected:
-  SDL_Texture* createTextureFromText(const std::string& textureText,
-                                     SDL_Color textColor);
-
 public:
+  //! Handle to SDL (to deinitialize on destructor)
+  utils::RaiiOwnership<void> sdlContext;
+
   //! Handle to application window
   utils::RaiiOwnership<SDL_Window> window;
 
   //! Handle to SDL's 2D renderer
   utils::RaiiOwnership<SDL_Renderer> renderer;
 
-  SDL_Surface* surface;
-
+public:
   //! Called when event arises in SDL polling mechanism
   std::function<void(const SDL_Event&)> onSDLEventCallback;
 
@@ -43,12 +43,20 @@ public:
   //! Call each frame after clear and before swap (present)
   std::function<void()> onRenderCallback;
 
+protected:
+  void initializeSDL();
+
+  void initializeWindowAndRenderer();
+
+  SDL_Texture* createTextureFromText(TTF_Font* font,
+                                     const std::string& textureText,
+                                     SDL_Color textColor);
+
+public:
   //! Is application (render) running?
   bool isStopped = { false };
 
   std::unordered_map<std::string, SDL_Texture*> textures;
-
-  utils::RaiiOwnership<TTF_Font> font;
 
   //! @brief Shitty manager for text textures (this architecture sucks, but I am
   //! in hurry atm)
@@ -60,10 +68,14 @@ public:
       SDL_Texture* texture;
     };
 
-    public:
+  public:
+    void initialize();
+
     void removeUnused();
 
-    public:
+  public:
+    utils::RaiiOwnership<TTF_Font> font;
+
     std::unordered_map<std::string, TextTexture> textures;
   };
 
