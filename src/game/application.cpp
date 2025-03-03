@@ -86,7 +86,8 @@ loadTexture(Application& application, const std::string& name)
 
   utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
 
-  const auto fileName = std::filesystem::path(name).filename().string();
+  const auto fileName =
+    std::filesystem::path(name).stem().string();
 
   application.textures[fileName] = texture;
 }

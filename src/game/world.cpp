@@ -189,7 +189,7 @@ World::render(Application& app)
 
     SDL_RenderFillRect(app.renderer.get(), &rect);
 
-    const auto tileTexture = app.textures["tile.png"];
+    const auto tileTexture = app.textures["tile"];
     if (tileTexture) {
       SDL_SetTextureBlendMode(tileTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.renderer.get(), tileTexture, NULL, &rect);
@@ -205,7 +205,7 @@ World::render(Application& app)
     SDL_FRect ballBody = ball->getBoundingRect();
     const auto rect = worldToViewCoordinates(app, ballBody);
 
-    const auto ballTexture = app.textures["ball.png"];
+    const auto ballTexture = app.textures["ball"];
     if (ballTexture) {
       SDL_SetTextureBlendMode(ballTexture, SDL_BLENDMODE_BLEND);
       SDL_RenderCopy(app.renderer.get(), ballTexture, NULL, &rect);
@@ -239,10 +239,10 @@ World::render(Application& app)
   if (gameStatus != GameStatus::running) {
     std::string textureName;
     if (gameStatus == GameStatus::game_over) {
-      textureName = "game_over.png";
+      textureName = "game_over";
     }
     if (gameStatus == GameStatus::you_won) {
-      textureName = "you_won.png";
+      textureName = "you_won";
     }
     const auto overlayTexture = app.textures[textureName];
     SDL_SetTextureBlendMode(overlayTexture, SDL_BLENDMODE_BLEND);
