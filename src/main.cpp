@@ -37,7 +37,7 @@ main(int argc, char* args[])
 
   auto lastFrame = std::chrono::high_resolution_clock::now();
 
-  app.onInitCallback = [&]() { loadAssets(app, "assets"); };
+  app.onInitCallback = [&]() { app.loadAssets("assets"); };
   app.onRenderCallback = [&]() {
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
@@ -61,7 +61,7 @@ main(int argc, char* args[])
   };
 
   try {
-    createApplication(app);
+    app.createApplication();
   } catch (const std::runtime_error& error) {
     SDL_ShowSimpleMessageBox(
       SDL_MESSAGEBOX_ERROR, "Fatal Error", error.what(), nullptr);

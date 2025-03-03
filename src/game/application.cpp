@@ -9,7 +9,7 @@
 #include <assert.h>
 
 void
-createApplication(Application& application)
+Application::createApplication()
 {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     throw std::runtime_error(
@@ -21,7 +21,7 @@ createApplication(Application& application)
       "Failed to initialize SDL's TTF module: %s\n", TTF_GetError()));
   }
 
-  application.window = utils::make_raii_deleter<SDL_Window>(
+  window = utils::make_raii_deleter<SDL_Window>(
     SDL_CreateWindow("Arkanoid",
                      SDL_WINDOWPOS_UNDEFINED,
                      SDL_WINDOWPOS_UNDEFINED,
@@ -30,32 +30,29 @@ createApplication(Application& application)
                      SDL_WINDOW_SHOWN),
     [](SDL_Window* window) -> void { SDL_DestroyWindow(window); });
 
-  utils::throw_if_null(application.window.get(),
-                       "Failed to initialize SDL Window");
+  utils::throw_if_null(window.get(), "Failed to initialize SDL Window");
 
-  application.renderer = utils::make_raii_deleter<SDL_Renderer>(
+  renderer = utils::make_raii_deleter<SDL_Renderer>(
     utils::throw_if_null(
-      SDL_CreateRenderer(application.window.get(),
-                         -1,
-                         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+      SDL_CreateRenderer(
+        window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
       "Failed to initialize renderer"),
     [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
 
   // Get window surface
-  application.surface =
-    utils::throw_if_null(SDL_GetWindowSurface(application.window.get()),
-                         "Failed to obtain SDL's window surface");
+  surface = utils::throw_if_null(SDL_GetWindowSurface(window.get()),
+                                 "Failed to obtain SDL's window surface");
 
-  const auto fontPath =  std::filesystem::absolute("assets/font.ttf").string();
+  const auto fontPath = std::filesystem::absolute("assets/font.ttf").string();
   assert(std::filesystem::exists(fontPath));
 
   // Credits: https://int10h.org/oldschool-pc-fonts/fontlist/font?ibm_vga_8x16
-  application.font = utils::make_raii_deleter<TTF_Font>(
+  font = utils::make_raii_deleter<TTF_Font>(
     utils::throw_if_null(TTF_OpenFont(fontPath.c_str(), 28),
                          std::string("Failed to open TTF font: ") + fontPath),
     [](TTF_Font* font) { TTF_CloseFont(font); });
 
-  application.onInitCallback();
+  onInitCallback();
 
   SDL_Event e;
   bool quit = false;
@@ -64,26 +61,23 @@ createApplication(Application& application)
       if (e.type == SDL_QUIT)
         quit = true;
       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
-        application.isStopped = !application.isStopped;
+        isStopped = !isStopped;
       }
 
-      if (application.onSDLEventCallback) {
-        application.onSDLEventCallback(e);
+      if (onSDLEventCallback) {
+        onSDLEventCallback(e);
       }
     }
 
     const auto frameBeggining = std::chrono::high_resolution_clock::now();
 
     const auto clearColor = Color::white;
-    SDL_SetRenderDrawColor(application.renderer.get(),
-                           clearColor.r,
-                           clearColor.g,
-                           clearColor.b,
-                           clearColor.a);
+    SDL_SetRenderDrawColor(
+      renderer.get(), clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 
-    SDL_RenderClear(application.renderer.get());
-    application.onRenderCallback();
-    SDL_RenderPresent(application.renderer.get());
+    SDL_RenderClear(renderer.get());
+    onRenderCallback();
+    SDL_RenderPresent(renderer.get());
 
     // FPS lock on circa 60FPS
     using namespace std::chrono_literals;
@@ -94,22 +88,21 @@ createApplication(Application& application)
 }
 
 void
-loadTexture(Application& application, const std::string& name)
+Application::loadTexture(const std::string& name)
 {
   SDL_Log("Loading texture: %s", name.c_str());
 
-  SDL_Texture* texture =
-    IMG_LoadTexture(application.renderer.get(), name.c_str());
+  SDL_Texture* texture = IMG_LoadTexture(renderer.get(), name.c_str());
 
   utils::throw_if_null(texture, std::string("Failed to load texture: ") + name);
 
   const auto fileName = std::filesystem::path(name).stem().string();
 
-  application.textures[fileName] = texture;
+  textures[fileName] = texture;
 }
 
 void
-loadAssets(Application& application, const std::string& assetDirectory)
+Application::loadAssets(const std::string& assetDirectory)
 {
   for (auto const& dir_entry :
        std::filesystem::directory_iterator{ assetDirectory }) {
@@ -118,41 +111,39 @@ loadAssets(Application& application, const std::string& assetDirectory)
     }
 
     if (dir_entry.path().extension() == ".png") {
-      loadTexture(application, dir_entry.path().string());
+      loadTexture(dir_entry.path().string());
     }
   }
 }
 
 //! Adapted from: https://lazyfoo.net/tutorials/SDL/16_true_type_fonts/index.php
 SDL_Texture*
-createTextureFromText(Application& application,
-                      const std::string& textureText,
-                      SDL_Color textColor)
+Application::createTextureFromText(const std::string& textureText,
+                                   SDL_Color textColor)
 {
 
-  assert(application.font.get() != nullptr);
+  assert(font.get() != nullptr);
 
   SDL_Texture* texture = nullptr;
 
   // Render text surface
   utils::RaiiOwnership<SDL_Surface> textSurface =
     utils::make_raii_deleter<SDL_Surface>(
-      utils::throw_if_null(TTF_RenderText_Solid(application.font.get(),
-                                                textureText.c_str(),
-                                                textColor),
-                           "Unable to render text surface!"),
+      utils::throw_if_null(
+        TTF_RenderText_Solid(font.get(), textureText.c_str(), textColor),
+        "Unable to render text surface!"),
       [](SDL_Surface* surface) { SDL_FreeSurface(surface); });
 
   // Create texture from surface pixels
   texture = utils::throw_if_null(
-    SDL_CreateTextureFromSurface(application.renderer.get(), textSurface.get()),
+    SDL_CreateTextureFromSurface(renderer.get(), textSurface.get()),
     "Unable to create texture from rendered text!");
 
   return texture;
 }
 
 SDL_Point
-getWindowSize(Application& application)
+Application::getWindowSize()
 {
-  return SDL_Point(application.surface->w, application.surface->h);
+  return SDL_Point(surface->w, surface->h);
 }

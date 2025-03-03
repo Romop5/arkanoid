@@ -8,6 +8,26 @@
 
 struct Application
 {
+
+  public:
+  void
+createApplication();
+
+
+void
+loadTexture(const std::string& name);
+
+
+void
+loadAssets(const std::string& assetDirectory);
+
+
+SDL_Texture*
+createTextureFromText(const std::string& textureText, SDL_Color textColor);
+
+SDL_Point
+getWindowSize();
+  public:
   //! Handle to application window
   utils::RaiiOwnership<SDL_Window> window;
 
@@ -32,21 +52,3 @@ struct Application
 
   utils::RaiiOwnership<TTF_Font> font;
 };
-
-void
-createApplication(Application& application);
-
-
-void
-loadTexture(Application& application, const std::string& name);
-
-
-void
-loadAssets(Application& application, const std::string& assetDirectory);
-
-
-SDL_Texture*
-createTextureFromText(Application& application, const std::string& textureText, SDL_Color textColor);
-
-SDL_Point
-getWindowSize(Application& application);
