@@ -455,7 +455,10 @@ World::detectBallCollisions(Ball& ball, bool reportCollisions)
   bool hasAnyCollision = false;
   const auto ballBody = ball.getBoundingRect();
 
+  // Keeps track of what were responses to collisions with different bodies
+  // E.g. if ball hit two bodies and both would invertX, only invert it once
   std::pair<bool, bool> invertSpeed = { false, false };
+
   auto detectBallVsBodyCollision = [&](const SDL_FRect& body) -> bool {
     if (SDL_HasIntersectionF(&ballBody, &body)) {
       hasAnyCollision = true;
@@ -701,7 +704,7 @@ World::onPickupPicked(EntityID pickupId)
     }
   }
 
-  // delete it
+  // delete pickup
   if (it != m_pickups.end()) {
     m_pickups.erase(it);
   }

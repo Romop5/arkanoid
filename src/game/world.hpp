@@ -67,6 +67,8 @@ protected:
 
   void correctBallAgainstWorldBoundaries(Ball& ball);
   bool detectBallCollisions(Ball& ball, bool reportCollisions);
+
+  //! Returns pair <invertSpeedX, invertSpeedY> to adjust speed after collision
   std::pair<bool, bool> resolveBallSpeedCollisionAfter(Ball& ball,
                                                        SDL_FRect rect);
   //! Spawn a random pickup
