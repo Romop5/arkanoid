@@ -1,13 +1,15 @@
 #include <SDL.h>
 
-#include "game/application.hpp"
-#include "game/utils.hpp"
-#include "game/world.hpp"
 #include <SDL_image.h>
 #include <chrono>
 #include <format>
 #include <functional>
 #include <thread>
+
+#include "game/application.hpp"
+#include "game/sdl_helper.hpp"
+#include "game/utils.hpp"
+#include "game/world.hpp"
 
 namespace {
 void
@@ -35,9 +37,7 @@ main(int argc, char* args[])
 
   auto lastFrame = std::chrono::high_resolution_clock::now();
 
-  app.onInitCallback = [&]() {
-    loadAssets(app, "assets");
-  };
+  app.onInitCallback = [&]() { loadAssets(app, "assets"); };
   app.onRenderCallback = [&]() {
     const auto now = std::chrono::high_resolution_clock::now();
     const auto delta = now - lastFrame;
@@ -60,6 +60,11 @@ main(int argc, char* args[])
     }
   };
 
-  createApplication(app);
+  try {
+    createApplication(app);
+  } catch (const std::runtime_error& error) {
+    SDL_ShowSimpleMessageBox(
+      SDL_MESSAGEBOX_ERROR, "Fatal Error", error.what(), nullptr);
+  }
   return 0;
 }
