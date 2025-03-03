@@ -106,10 +106,6 @@ World::initializePaddle()
 void
 World::update(std::chrono::microseconds delta)
 {
-  if (gameStatus != GameStatus::running) {
-    return;
-  }
-
   const auto now = std::chrono::high_resolution_clock::now();
   using namespace std::chrono_literals;
   // slow down the game if FPS fall below 30 frames per second (33ms)
@@ -134,6 +130,14 @@ World::update(std::chrono::microseconds delta)
     } else {
       break;
     }
+  }
+
+  if (gameStatus != GameStatus::running) {
+    return;
+  }
+
+  if (ball && hasBallFallenDown(*ball)) {
+    events.push(Event([=]() { onBallFallDown(); }));
   }
 
   updatePickups(delta);
