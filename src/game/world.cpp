@@ -36,6 +36,7 @@ void
 World::initializeWorld()
 {
   // clear queue
+  SDL_Log("Clearing event queue with n = %ull events", events.size());
   while (!events.empty()) {
     events.pop();
   }
@@ -116,13 +117,10 @@ World::update(std::chrono::microseconds delta)
 
   delta *= speed;
 
-  if (ball && hasBallFallenDown(*ball)) {
-    events.push(Event([=]() { onBallFallDown(); }));
-  }
-
   // process events
   while (!events.empty()) {
     if (events.top().deadline < now) {
+      SDL_Log("Popping event");
       const auto event = events.top();
       events.pop();
 
@@ -485,12 +483,14 @@ World::setBallSize(float ratio)
 void
 World::onRestart()
 {
+  SDL_Log("onRestart");
   initializeWorld();
 }
 
 void
 World::onLevelFinished()
 {
+  SDL_Log("onLevelFinished");
   gameStatus = GameStatus::you_won;
   events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
 }
@@ -498,6 +498,7 @@ World::onLevelFinished()
 void
 World::onGameOver()
 {
+  SDL_Log("onGameOver");
   gameStatus = GameStatus::game_over;
   events.push(Event(std::chrono::seconds(10), [=]() { onRestart(); }));
 }
@@ -505,6 +506,7 @@ World::onGameOver()
 void
 World::onReleaseBall()
 {
+  SDL_Log("onReleaseBall");
   if (!ball.has_value()) {
     initializeBall();
   }
