@@ -41,6 +41,9 @@ World::initializeWorld()
     events.pop();
   }
 
+  tileMap.clear();
+  pickups.clear();
+
   // generate random tiles
   for (int x = 0; x < Constants::maxTilesX; x++) {
     for (int y = 0; y < Constants::maxTilesY - 3; y++) {
