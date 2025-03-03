@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <functional>
 
 #include "utils.hpp"
@@ -28,6 +29,8 @@ struct Application
   bool isStopped = { false };
 
   std::unordered_map<std::string, SDL_Texture*> textures;
+
+  utils::RaiiOwnership<TTF_Font> font;
 };
 
 void
@@ -40,3 +43,10 @@ loadTexture(Application& application, const std::string& name);
 
 void
 loadAssets(Application& application, const std::string& assetDirectory);
+
+
+SDL_Texture*
+createTextureFromText(Application& application, const std::string& textureText, SDL_Color textColor);
+
+SDL_Point
+getWindowSize(Application& application);

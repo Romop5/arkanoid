@@ -4,11 +4,12 @@ project(arkanoid)
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
 file(GLOB game_sources "src/game/*")
 add_library(game)
 target_sources(game PRIVATE ${game_sources})
-target_link_libraries(game PUBLIC SDL2::SDL2 SDL2_image::SDL2_image)
+target_link_libraries(game PUBLIC SDL2::SDL2 SDL2_image::SDL2_image sdl_ttf::sdl_ttf)
 target_include_directories(game PUBLIC "src/")
 set_property(TARGET game PROPERTY CXX_STANDARD 20)
 

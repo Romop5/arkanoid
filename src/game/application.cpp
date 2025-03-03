@@ -6,6 +6,7 @@
 
 #include "application.hpp"
 #include "constants.hpp"
+#include <assert.h>
 
 void
 createApplication(Application& application)
@@ -13,6 +14,11 @@ createApplication(Application& application)
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     throw std::runtime_error(
       std::format("SDL could not initialize! SDL_Error: %s\n", SDL_GetError()));
+  }
+
+  if (TTF_Init() < 0) {
+    throw std::runtime_error(std::format(
+      "Failed to initialize SDL's TTF module: %s\n", TTF_GetError()));
   }
 
   application.window = utils::make_raii_deleter<SDL_Window>(
@@ -39,6 +45,15 @@ createApplication(Application& application)
   application.surface =
     utils::throw_if_null(SDL_GetWindowSurface(application.window.get()),
                          "Failed to obtain SDL's window surface");
+
+  const auto fontPath =  std::filesystem::absolute("assets/font.ttf").string();
+  assert(std::filesystem::exists(fontPath));
+
+  // Credits: https://int10h.org/oldschool-pc-fonts/fontlist/font?ibm_vga_8x16
+  application.font = utils::make_raii_deleter<TTF_Font>(
+    utils::throw_if_null(TTF_OpenFont(fontPath.c_str(), 28),
+                         std::string("Failed to open TTF font: ") + fontPath),
+    [](TTF_Font* font) { TTF_CloseFont(font); });
 
   application.onInitCallback();
 
@@ -106,4 +121,38 @@ loadAssets(Application& application, const std::string& assetDirectory)
       loadTexture(application, dir_entry.path().string());
     }
   }
+}
+
+//! Adapted from: https://lazyfoo.net/tutorials/SDL/16_true_type_fonts/index.php
+SDL_Texture*
+createTextureFromText(Application& application,
+                      const std::string& textureText,
+                      SDL_Color textColor)
+{
+
+  assert(application.font.get() != nullptr);
+
+  SDL_Texture* texture = nullptr;
+
+  // Render text surface
+  utils::RaiiOwnership<SDL_Surface> textSurface =
+    utils::make_raii_deleter<SDL_Surface>(
+      utils::throw_if_null(TTF_RenderText_Solid(application.font.get(),
+                                                textureText.c_str(),
+                                                textColor),
+                           "Unable to render text surface!"),
+      [](SDL_Surface* surface) { SDL_FreeSurface(surface); });
+
+  // Create texture from surface pixels
+  texture = utils::throw_if_null(
+    SDL_CreateTextureFromSurface(application.renderer.get(), textSurface.get()),
+    "Unable to create texture from rendered text!");
+
+  return texture;
+}
+
+SDL_Point
+getWindowSize(Application& application)
+{
+  return SDL_Point(application.surface->w, application.surface->h);
 }

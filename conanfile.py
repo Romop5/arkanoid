@@ -14,6 +14,7 @@ class ArkanoidRecipe(ConanFile):
     def requirements(self):
         self.requires("sdl/2.30.1", override=True)
         self.requires("sdl_image/2.0.5")
+        self.requires("sdl_ttf/2.22.0")
     
     def layout(self):
         cmake_layout(self)
