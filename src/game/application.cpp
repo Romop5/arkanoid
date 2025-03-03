@@ -9,6 +9,11 @@
 #include "constants.hpp"
 #include <assert.h>
 
+namespace {
+//! How often should we check for unused text textures
+constexpr unsigned framesBetweenTextGarbageCollection = 1000; // frames
+} // namespace
+
 void
 Application::createApplication()
 {
@@ -24,6 +29,8 @@ Application::createApplication()
 void
 Application::runLoop()
 {
+  unsigned frameId = 0;
+
   SDL_Event e;
   bool quit = false;
   while (quit == false) {
@@ -53,8 +60,12 @@ Application::runLoop()
     using namespace std::chrono_literals;
     std::this_thread::sleep_until(frameBeggining + 16ms);
 
-    // clean-up text render cache
-    m_textManager.removeUnused();
+    if (frameId % framesBetweenTextGarbageCollection == 0) {
+      // clean-up text render cache once a few frames
+      m_textManager.removeUnused();
+    }
+
+    frameId++;
   }
 }
 
@@ -91,9 +102,10 @@ Application::getCachedTextureForText(const std::string& textureText)
 {
   // create and cache texture for given text
   if (!m_textManager.hasTexture(textureText)) {
-    m_textManager.addTexture(
-      textureText,
-      createTextureFromText(m_textManager.getFont(), textureText, Color::black));
+    m_textManager.addTexture(textureText,
+                             createTextureFromText(m_textManager.getFont(),
+                                                   textureText,
+                                                   Color::black));
   }
 
   return m_textManager.getTexture(textureText);
@@ -139,8 +151,9 @@ Application::initializeWindowAndRenderer()
 
   m_renderer = utils::make_raii_deleter<SDL_Renderer>(
     utils::throw_if_null(
-      SDL_CreateRenderer(
-        m_window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
+      SDL_CreateRenderer(m_window.get(),
+                         -1,
+                         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC),
       "Failed to initialize renderer"),
     [](SDL_Renderer* renderer) { SDL_DestroyRenderer(renderer); });
 }

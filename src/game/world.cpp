@@ -169,10 +169,10 @@ World::renderEntities(Application& app)
 {
   const auto appSize = app.getWindowSize();
   SDL_Rect viewport;
-  viewport.x = 10;
-  viewport.y = 50;
-  viewport.w = appSize.x - 20;
-  viewport.h = appSize.y - 50;
+  viewport.x = Constants::worldRenderingHorizontalMargin;
+  viewport.y = Constants::worldRenderingTopMargin;
+  viewport.w = appSize.x - Constants::worldRenderingHorizontalMargin*2;
+  viewport.h = appSize.y - Constants::worldRenderingTopMargin;
 
   SDL_RenderSetViewport(app.getRenderer(), &viewport);
 
