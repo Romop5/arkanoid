@@ -25,7 +25,7 @@ renderApplicationOverlay(Application& app)
     SDL_SetRenderDrawBlendMode(app.getRenderer(), SDL_BLENDMODE_NONE);
 
     const auto blackText = app.getCachedTextureForText(std::format("Paused"));
-    const auto textSize = sdl_helper::getsize(blackText);
+    const auto textSize = sdl_helper::getTextureSize(blackText);
 
     const auto ws = app.getWindowSize();
     SDL_Rect rect;
